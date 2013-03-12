@@ -15,6 +15,7 @@
 	.text
 	.align	5
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 ENTRY(memset)
 	ands	r3, r0, #3		@ 1 unaligned?
@@ -43,6 +44,13 @@ ENTRY(memset)
 	ands	r3, ip, #3		@ 1 unaligned?
 	bne	1b			@ 1
 >>>>>>> 32c542d... ARM: 7668/1: fix memset-related crashes caused by recent GCC (4.7.2) optimizations
+=======
+
+ENTRY(memset)
+	ands	r3, r0, #3		@ 1 unaligned?
+	mov	ip, r0			@ preserve r0 as return value
+	bne	6f			@ 1
+>>>>>>> de00093... ARM: 7670/1: fix the memset fix
 /*
  * we know that the pointer in ip is aligned to a word boundary.
  */
