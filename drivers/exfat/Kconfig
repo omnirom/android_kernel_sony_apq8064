@@ -1,0 +1,5 @@
+menuconfig EXFAT
+	tristate "Samsung EXFAT support"
+	default m
+	help
+	  Say Y to enable Samsung EXFAT support.
