@@ -3423,6 +3423,13 @@ void hdd_deinit_adapter( hdd_context_t *pHddCtx, hdd_adapter_t *pAdapter )
       case WLAN_HDD_SOFTAP:
       case WLAN_HDD_P2P_GO:
       {
+
+         if (test_bit(WMM_INIT_DONE, &pAdapter->event_flags))
+         {
+            hdd_wmm_adapter_close( pAdapter );
+            clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
+         }
+
          hdd_cleanup_actionframe(pHddCtx, pAdapter);
 
          hdd_unregister_hostapd(pAdapter);
@@ -3509,7 +3516,6 @@ void hdd_set_pwrparams(hdd_context_t *pHddCtx)
            tSirSetPowerParamsReq powerRequest = { 0 };
 
            powerRequest.uIgnoreDTIM = 1;
-           powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
 
            if (pHddCtx->cfg_ini->enableModulatedDTIM)
            {
@@ -3548,7 +3554,6 @@ void hdd_reset_pwrparams(hdd_context_t *pHddCtx)
 
    powerRequest.uIgnoreDTIM = pHddCtx->hdd_actual_ignore_DTIM_value;
    powerRequest.uListenInterval = pHddCtx->hdd_actual_LI_value;
-   powerRequest.uMaxLIModulatedDTIM = pHddCtx->cfg_ini->fMaxLIModulatedDTIM;
 
    /* Update ignoreDTIM and ListedInterval in CFG with default values */
    ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IGNORE_DTIM, powerRequest.uIgnoreDTIM,
@@ -4153,8 +4158,14 @@ VOS_STATUS hdd_reset_all_adapters( hdd_context_t *pHddCtx )
       netif_tx_disable(pAdapter->dev);
       netif_carrier_off(pAdapter->dev);
 
+      pAdapter->sessionCtx.station.hdd_ReassocScenario = VOS_FALSE;
+
       hdd_deinit_tx_rx(pAdapter);
-      hdd_wmm_adapter_close(pAdapter);
+      if (test_bit(WMM_INIT_DONE, &pAdapter->event_flags))
+      {
+          hdd_wmm_adapter_close( pAdapter );
+          clear_bit(WMM_INIT_DONE, &pAdapter->event_flags);
+      }
 
       status = hdd_get_next_adapter ( pHddCtx, pAdapterNode, &pNext );
       pAdapterNode = pNext;
@@ -4170,7 +4181,6 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
    hdd_adapter_list_node_t *pAdapterNode = NULL, *pNext = NULL;
    VOS_STATUS status;
    hdd_adapter_t      *pAdapter;
-   v_MACADDR_t  bcastMac = VOS_MAC_ADDR_BROADCAST_INITIALIZER;
    eConnectionState  connState;
 
    ENTER();
@@ -4207,6 +4217,7 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
                wrqu.ap_addr.sa_family = ARPHRD_ETHER;
                memset(wrqu.ap_addr.sa_data,'\0',ETH_ALEN);
                wireless_send_event(pAdapter->dev, SIOCGIWAP, &wrqu, NULL);
+               pAdapter->sessionCtx.station.hdd_ReassocScenario = VOS_FALSE;
 
                /* indicate disconnected event to nl80211 */
                cfg80211_disconnected(pAdapter->dev, WLAN_REASON_UNSPECIFIED,
@@ -4230,11 +4241,9 @@ VOS_STATUS hdd_start_all_adapters( hdd_context_t *pHddCtx )
             break;
 
          case WLAN_HDD_P2P_GO:
-              hddLog(VOS_TRACE_LEVEL_ERROR, "%s [SSR] send restart supplicant",
+            hddLog(VOS_TRACE_LEVEL_ERROR, "%s [SSR] send stop ap to supplicant",
                                                        __func__);
-              /* event supplicant to restart */
-              cfg80211_del_sta(pAdapter->dev,
-                        (const u8 *)&bcastMac.bytes[0], GFP_KERNEL);
+            cfg80211_ap_stopped(pAdapter->dev, GFP_KERNEL);
             break;
 
          case WLAN_HDD_MONITOR:
@@ -5478,7 +5487,6 @@ int hdd_wlan_startup(struct device *dev )
       goto err_config;
    }
 
-
    if (false == hdd_is_5g_supported(pHddCtx))
    {
       //5Ghz is not supported.
@@ -5489,6 +5497,13 @@ int hdd_wlan_startup(struct device *dev )
          pHddCtx->cfg_ini->nBandCapability = 1;
       }
    }
+
+   /* INI has been read, initialise the configuredMcastBcastFilter with
+    * INI value as this will serve as the default value
+    */
+   pHddCtx->configuredMcastBcastFilter = pHddCtx->cfg_ini->mcastBcastFilterSetting;
+   hddLog(VOS_TRACE_LEVEL_INFO, "Setting configuredMcastBcastFilter: %d",
+                   pHddCtx->cfg_ini->mcastBcastFilterSetting);
    /*
     * cfg80211: Initialization  ...
     */

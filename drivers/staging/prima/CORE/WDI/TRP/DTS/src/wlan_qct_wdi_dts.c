@@ -575,6 +575,12 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
       if(VPKT_SIZE_BUFFER < (usMPDULen+ucMPDUHOffset)){
         DTI_TRACE( DTI_TRACE_LEVEL_FATAL,
                    "Invalid Frame size, might memory corrupted");
+
+        /* Size of the packet tranferred by the DMA engine is
+         * greater than the the memory allocated for the skb
+         */
+        WPAL_BUG(0);
+
         wpalPacketFree(pFrame);
         return eWLAN_PAL_STATUS_SUCCESS;
       }
@@ -647,7 +653,7 @@ wpt_status WDTS_RxPacket (void *pContext, wpt_packet *pFrame, WDTS_ChannelType c
       pRxMetadata->ampdu_reorderOpcode  = (wpt_uint8)WDI_RX_BD_GET_BA_OPCODE(pBDHeader);
       pRxMetadata->ampdu_reorderSlotIdx = (wpt_uint8)WDI_RX_BD_GET_BA_SI(pBDHeader);
       pRxMetadata->ampdu_reorderFwdIdx  = (wpt_uint8)WDI_RX_BD_GET_BA_FI(pBDHeader);
-      pRxMetadata->currentPktSeqNo       = (wpt_uint8)WDI_RX_BD_GET_BA_CSN(pBDHeader);
+      pRxMetadata->currentPktSeqNo       = (wpt_uint16)WDI_RX_BD_GET_BA_CSN(pBDHeader);
 
 
       /*------------------------------------------------------------------------

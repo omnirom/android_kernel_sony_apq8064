@@ -665,11 +665,6 @@ typedef enum
 #define CFG_IGNORE_DTIM_MAX                    WNI_CFG_IGNORE_DTIM_STAMAX
 #define CFG_IGNORE_DTIM_DEFAULT                WNI_CFG_IGNORE_DTIM_STADEF
 
-#define CFG_MAX_LI_MODULATED_DTIM_NAME         "gMaxLIModulatedDTIM"
-#define CFG_MAX_LI_MODULATED_DTIM_MIN          ( 1 )
-#define CFG_MAX_LI_MODULATED_DTIM_MAX          ( 10 )
-#define CFG_MAX_LI_MODULATED_DTIM_DEFAULT      ( 10 )
-
 #define CFG_RX_ANT_CONFIGURATION_NAME          "gNumRxAnt"
 #define CFG_RX_ANT_CONFIGURATION_NAME_MIN      ( 1 )
 #define CFG_RX_ANT_CONFIGURATION_NAME_MAX      ( 2 )
@@ -1246,6 +1241,12 @@ typedef enum
 #define CFG_ENABLE_HOST_ARPOFFLOAD_MAX          ( 1 )
 #define CFG_ENABLE_HOST_ARPOFFLOAD_DEFAULT      ( 0 )
 
+#define CFG_ENABLE_HOST_NSOFFLOAD_NAME         "hostNSOffload"
+#define CFG_ENABLE_HOST_NSOFFLOAD_MIN          ( 0 )
+#define CFG_ENABLE_HOST_NSOFFLOAD_MAX          ( 1 )
+#define CFG_ENABLE_HOST_NSOFFLOAD_DEFAULT      ( 0 )
+
+
 #define CFG_ENABLE_BTAMP_NAME                   "gEnableBtAmp"
 #define CFG_ENABLE_BTAMP_MIN                    ( 0 )
 #define CFG_ENABLE_BTAMP_MAX                    ( 1 )
@@ -1755,6 +1756,13 @@ typedef enum
 #define CFG_TRAFFIC_IDLE_TIMEOUT_MAX              ( 10000 )
 #define CFG_TRAFFIC_IDLE_TIMEOUT_DEFAULT          ( 5000 )
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+#define CFG_PNO_SCAN_TIMER_REPEAT_VALUE              "gPNOScanTimerRepeatValue"
+#define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_DEFAULT      ( 6 )
+#define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MIN          ( 0 )
+#define CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MAX          ( 0xffffffff )
+#endif
+
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2010,6 +2018,7 @@ typedef struct
    v_BOOL_t                    bSingleTidRc;
    v_U8_t                      mcastBcastFilterSetting;
    v_BOOL_t                    fhostArpOffload;
+   v_BOOL_t                    fhostNSOffload;
    v_BOOL_t                    burstSizeDefinition;
    v_U8_t                      tsInfoAckPolicy;
    
@@ -2129,6 +2138,10 @@ typedef struct
    v_U32_t                     cfgMaxMediumTime;
    v_U8_t                      enableTrafficMonitor;
    v_U32_t                     trafficIdleTimeout;
+   /*PNO related parameters */
+#if FEATURE_WLAN_SCAN_PNO
+   v_U32_t                     configPNOScanTimerRepeatValue;
+#endif
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation

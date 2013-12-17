@@ -914,13 +914,6 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_IGNORE_DTIM_MIN,
                  CFG_IGNORE_DTIM_MAX ),
 
-   REG_VARIABLE( CFG_MAX_LI_MODULATED_DTIM_NAME, WLAN_PARAM_Integer,
-                 hdd_config_t, fMaxLIModulatedDTIM,
-                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
-                 CFG_MAX_LI_MODULATED_DTIM_DEFAULT,
-                 CFG_MAX_LI_MODULATED_DTIM_MIN,
-                 CFG_MAX_LI_MODULATED_DTIM_MAX ),
-
    REG_VARIABLE( CFG_RX_ANT_CONFIGURATION_NAME, WLAN_PARAM_Integer,
                 hdd_config_t, nRxAnt,
                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
@@ -1591,6 +1584,13 @@ REG_TABLE_ENTRY g_registry_table[] =
                  CFG_ENABLE_HOST_ARPOFFLOAD_DEFAULT,
                  CFG_ENABLE_HOST_ARPOFFLOAD_MIN,
                  CFG_ENABLE_HOST_ARPOFFLOAD_MAX ),
+
+   REG_VARIABLE( CFG_ENABLE_HOST_NSOFFLOAD_NAME, WLAN_PARAM_Integer,
+                 hdd_config_t, fhostNSOffload,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_ENABLE_HOST_NSOFFLOAD_DEFAULT,
+                 CFG_ENABLE_HOST_NSOFFLOAD_MIN,
+                 CFG_ENABLE_HOST_NSOFFLOAD_MAX ),
 
    REG_VARIABLE( CFG_QOS_WMM_TS_INFO_ACK_POLICY_NAME , WLAN_PARAM_HexInteger,
                  hdd_config_t, tsInfoAckPolicy,
@@ -2264,6 +2264,16 @@ REG_VARIABLE(CFG_MAX_MEDIUM_TIME, WLAN_PARAM_Integer,
                 CFG_TRAFFIC_IDLE_TIMEOUT_DEFAULT,
                 CFG_TRAFFIC_IDLE_TIMEOUT_MIN,
                 CFG_TRAFFIC_IDLE_TIMEOUT_MAX),
+
+#ifdef FEATURE_WLAN_SCAN_PNO
+   REG_VARIABLE( CFG_PNO_SCAN_TIMER_REPEAT_VALUE, WLAN_PARAM_Integer,
+                 hdd_config_t, configPNOScanTimerRepeatValue,
+                 VAR_FLAGS_OPTIONAL | VAR_FLAGS_RANGE_CHECK_ASSUME_DEFAULT,
+                 CFG_PNO_SCAN_TIMER_REPEAT_VALUE_DEFAULT,
+                 CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MIN,
+                 CFG_PNO_SCAN_TIMER_REPEAT_VALUE_MAX),
+#endif
+
 };
 
 /*

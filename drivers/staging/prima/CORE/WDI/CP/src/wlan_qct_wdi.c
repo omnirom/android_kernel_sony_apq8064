@@ -13207,9 +13207,17 @@ WDI_ProcessHostOffloadReq
         wpalMemoryCopy(nsOffloadParams.selfMacAddr,
                         pwdiHostOffloadParams->wdiNsOffloadParams.selfMacAddr,
                         6);
-        nsOffloadParams.srcIPv6AddrValid = pwdiHostOffloadParams->wdiNsOffloadParams.srcIPv6AddrValid;
-        nsOffloadParams.targetIPv6Addr1Valid = pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr1Valid;
-        nsOffloadParams.targetIPv6Addr2Valid = pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr2Valid;
+        nsOffloadParams.srcIPv6AddrValid =
+            pwdiHostOffloadParams->wdiNsOffloadParams.srcIPv6AddrValid;
+
+        nsOffloadParams.targetIPv6Addr1Valid =
+            pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr1Valid;
+
+        nsOffloadParams.targetIPv6Addr2Valid =
+            pwdiHostOffloadParams->wdiNsOffloadParams.targetIPv6Addr2Valid;
+
+        nsOffloadParams.slotIndex =
+            pwdiHostOffloadParams->wdiNsOffloadParams.slotIdx;
 
 #endif // WLAN_NS_OFFLOAD
    }
@@ -25540,10 +25548,6 @@ WDI_ProcessSetPowerParamsReq
   /* Beacon Early Termination Interval */
   powerParams.uBETInterval =
     pwdiPowerParamsReqParams->wdiSetPowerParamsInfo.uBETInterval;
-
-  /* MAX LI for modulated DTIM */
-  powerParams.uMaxLIModulatedDTIM =
-  pwdiPowerParamsReqParams->wdiSetPowerParamsInfo.uMaxLIModulatedDTIM;
 
    wpalMemoryCopy( pSendBuffer+usDataOffset,
                    &powerParams,

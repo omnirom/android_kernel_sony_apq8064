@@ -8312,6 +8312,8 @@ VOS_STATUS WDA_ProcessHostOffloadReq(tWDA_CbContext *pWDA,
          {
             wdiHostOffloadInfo->wdiNsOffloadParams.targetIPv6Addr2Valid = 0;
          }
+         wdiHostOffloadInfo->wdiNsOffloadParams.slotIdx =
+                        pHostOffloadParams->nsOffloadInfo.slotIdx;
          break;
 #endif //WLAN_NS_OFFLOAD
       default:
@@ -9771,7 +9773,7 @@ void WDA_GtkOffloadGetInfoRespCallback( WDI_GtkOffloadGetInfoRspParams *pwdiGtkO
 
    /* Message Header */
    pGtkOffloadGetInfoRsp->mesgType = eWNI_PMC_GTK_OFFLOAD_GETINFO_RSP;
-   pGtkOffloadGetInfoRsp->mesgLen = sizeof(tpSirGtkOffloadGetInfoRspParams);
+   pGtkOffloadGetInfoRsp->mesgLen = sizeof(tSirGtkOffloadGetInfoRspParams);
 
    pGtkOffloadGetInfoRsp->ulStatus            = pwdiGtkOffloadGetInfoRsparams->ulStatus;
    pGtkOffloadGetInfoRsp->ullKeyReplayCounter = pwdiGtkOffloadGetInfoRsparams->ullKeyReplayCounter;
@@ -10342,6 +10344,16 @@ VOS_STATUS WDA_TxPacket(tWDA_CbContext *pWDA,
       }
       status = VOS_STATUS_E_FAILURE;
    }
+#ifdef WLAN_DUMP_MGMTFRAMES
+   if (VOS_IS_STATUS_SUCCESS(status))
+   {
+      VOS_TRACE( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                      "%s() TX packet : SubType %d", __func__,pFc->subType);
+      VOS_TRACE_HEX_DUMP( VOS_MODULE_ID_WDA, VOS_TRACE_LEVEL_ERROR,
+                          pData, frmLen);
+   }
+#endif
+
    return status;
 }
 /*
@@ -13274,8 +13286,6 @@ VOS_STATUS WDA_ProcessSetPowerParamsReq(tWDA_CbContext *pWDA,
       pPowerParams->uEnableBET;
    pwdiSetPowerParamsReqInfo->wdiSetPowerParamsInfo.uBETInterval      = 
       pPowerParams->uBETInterval; 
-   pwdiSetPowerParamsReqInfo->wdiSetPowerParamsInfo.uMaxLIModulatedDTIM =
-      pPowerParams->uMaxLIModulatedDTIM;
    pwdiSetPowerParamsReqInfo->wdiReqStatusCB = WDA_SetPowerParamsReqCallback;
    pwdiSetPowerParamsReqInfo->pUserData = pWdaParams;
 
