@@ -190,6 +190,15 @@
 #define GTK_OFFLOAD_DISABLE 1
 #endif
 
+#ifdef FEATURE_WLAN_SCAN_PNO
+#define HDD_PNO_SCAN_TIMERS_SET_ONE      1
+/* value should not be greater than PNO_MAX_SCAN_TIMERS */
+#define HDD_PNO_SCAN_TIMERS_SET_MULTIPLE 6
+#endif
+
+#define HDD_MAC_ADDR_LEN    6
+typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
+
 #define HDD_MAC_ADDR_LEN    6
 typedef v_U8_t tWlanHddMacAddr[HDD_MAC_ADDR_LEN];
 
@@ -535,6 +544,7 @@ struct hdd_station_ctx
 #ifdef WLAN_FEATURE_GTK_OFFLOAD
    hddGtkOffloadParams gtkOffloadRequestParams;
 #endif
+   v_BOOL_t hdd_ReassocScenario;
 };
 
 #define BSS_STOP    0 
@@ -803,14 +813,6 @@ struct hdd_adapter_s
    v_BOOL_t higherDtimTransition;
 };
 
-typedef struct hdd_dynamic_mcbcfilter_s
-{
-    v_BOOL_t     enableCfg;
-    v_U8_t       mcastBcastFilterSetting;
-    v_BOOL_t     enableSuspend;
-    v_U8_t       mcBcFilterSuspend;
-}hdd_dynamic_mcbcfilter_t;
-
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
 #define WLAN_HDD_GET_AP_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.ap)
 #define WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter)  (&(pAdapter)->sessionCtx.station.WextState)
@@ -949,8 +951,6 @@ struct hdd_context_s
    /* Number of times riva restarted */
    v_U32_t  hddRivaResetStats;
    
-   hdd_dynamic_mcbcfilter_t dynamic_mcbc_filter;
-   
    /* Can we allow AMP connection right now*/
    v_BOOL_t isAmpAllowed;
    
@@ -1003,11 +1003,19 @@ struct hdd_context_s
      */
     spinlock_t schedScan_lock;
 
+    v_U8_t sus_res_mcastbcast_filter;
+
     // Flag keeps track of wiphy suspend/resume
     v_BOOL_t isWiphySuspended;
 
     // Indicates about pending sched_scan results
     v_BOOL_t isSchedScanUpdatePending;
+
+    /* MC/BC Filter state variable
+     * This always contains the value that is currently
+     * configured
+     * */
+    v_U8_t configuredMcastBcastFilter;
 };
 
 

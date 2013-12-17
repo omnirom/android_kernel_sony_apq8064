@@ -3522,6 +3522,7 @@ typedef struct
    wpt_uint8 srcIPv6AddrValid : 1;
    wpt_uint8 targetIPv6Addr1Valid : 1;
    wpt_uint8 targetIPv6Addr2Valid : 1;
+   wpt_uint8 slotIdx;
 } WDI_NSOffloadParams;
 #endif //WLAN_NS_OFFLOAD
 
@@ -4588,9 +4589,6 @@ typedef struct
 
   /* Beacon Early Termination Interval */
   wpt_uint32 uBETInterval; 
-
-  /* MAX LI for modulated DTIM */
-  wpt_uint32 uMaxLIModulatedDTIM;
 
 } WDI_SetPowerParamsInfo;
 
