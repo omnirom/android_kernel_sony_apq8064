@@ -651,8 +651,8 @@ limProcessAssocReqFrame(tpAniSirGlobal pMac, tANI_U8 *pRxPacketInfo,
             && psessionEntry->pLimStartBssReq->rsnIE.length)
         {
             limLog(pMac, LOGE,
-                   FL("AP supports RSN enabled authentication"));
-
+                   FL("RSN enabled auth, Re/Assoc req from STA: "MAC_ADDRESS_STR),
+                       MAC_ADDR_ARRAY(pHdr->sa));
             if(pAssocReq->rsnPresent)
             {
                 if(pAssocReq->rsn.length)
@@ -1126,9 +1126,8 @@ if (limPopulateMatchingRateSet(pMac,
                              subType, true, authType, peerIdx, true,
                              (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
 
-        /*return it from here rather than goto error statement.This is done as the memory is getting free twice*/
-        return;
-        //goto error;
+        pAssocReq = psessionEntry->parsedAssocReq[pStaDs->assocId];
+        goto error;
     }
 
     palCopyMemory( pMac->hHdd, (tANI_U8 *) &pStaDs->mlmStaContext.propRateSet,
@@ -1176,9 +1175,8 @@ if (limPopulateMatchingRateSet(pMac,
                                      (tSirResultCodes) eSIR_MAC_WME_REFUSED_STATUS, psessionEntry);
 
 
-                /*return it from here rather than goto error statement.This is done as the memory is getting free twice in this uapsd scenario*/
-                return;
-                //goto error;
+                pAssocReq = psessionEntry->parsedAssocReq[pStaDs->assocId];
+                goto error;
             }
             else
             {
@@ -1227,9 +1225,8 @@ if (limPopulateMatchingRateSet(pMac,
                                   true, pStaDs->mlmStaContext.authType, pStaDs->assocId, true,
                                   (tSirResultCodes) eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
 
-            /*return it from here rather than goto error statement.This is done as the memory is getting free twice*/
-            return;
-            //goto error;
+            pAssocReq = psessionEntry->parsedAssocReq[pStaDs->assocId];
+            goto error;
         }
     }
     else
@@ -1251,6 +1248,7 @@ if (limPopulateMatchingRateSet(pMac,
 
                 //Restoring the state back.
                 pStaDs->mlmStaContext.mlmState = mlmPrevState;
+                pAssocReq = psessionEntry->parsedAssocReq[pStaDs->assocId];
                 goto error;
             }
         }
@@ -1266,6 +1264,7 @@ if (limPopulateMatchingRateSet(pMac,
 
                     //Restoring the state back.
                     pStaDs->mlmStaContext.mlmState = mlmPrevState;
+                    pAssocReq = psessionEntry->parsedAssocReq[pStaDs->assocId];
                     goto error;
             }
 

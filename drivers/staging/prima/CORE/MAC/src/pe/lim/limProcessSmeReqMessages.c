@@ -1065,7 +1065,6 @@ void limGetRandomBssid(tpAniSirGlobal pMac, tANI_U8 *data)
      palCopyMemory(pMac->hHdd, data, (tANI_U8*)random, sizeof(tSirMacAddr));
 }
 
-
 /**
  * __limProcessSmeScanReq()
  *
@@ -3535,7 +3534,6 @@ __limProcessSmeAssocCnfNew(tpAniSirGlobal pMac, tANI_U32 msgType, tANI_U32 *pMsg
                              true, pStaDs->mlmStaContext.authType,
                              pStaDs->assocId, true,
                              eSIR_MAC_UNSPEC_FAILURE_STATUS, psessionEntry);
-        return;
     }
 
 end:
