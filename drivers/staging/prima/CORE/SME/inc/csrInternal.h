@@ -643,6 +643,7 @@ typedef struct tagCsrConfig
     tANI_U32  nVhtChannelWidth;
     tANI_U8   txBFEnable;
     tANI_U8   txBFCsnValue;
+    tANI_BOOLEAN enableVhtFor24GHz;
 #endif
     tANI_U8   txLdpcEnable;
 
@@ -714,6 +715,7 @@ typedef struct tagCsrScanStruct
     tANI_U8 countryCode11d[WNI_CFG_COUNTRY_CODE_LEN];
     v_REGDOMAIN_t domainIdDefault;  //default regulatory domain
     v_REGDOMAIN_t domainIdCurrent;  //current regulatory domain
+    tCsrBssid currentCountryBssid;  // Bssid for current country code
     tANI_BOOLEAN f11dInfoApplied;
     tANI_BOOLEAN fCancelIdleScan;
 #ifdef FEATURE_WLAN_WAPI
@@ -1107,10 +1109,6 @@ void csrScanSuspendIMPS( tpAniSirGlobal pMac );
 void csrScanResumeIMPS( tpAniSirGlobal pMac );
 
 eHalStatus csrInitGetChannels(tpAniSirGlobal pMac);
-// Getting the 5GHz Channel list
-eHalStatus csrGet5GChannels(tpAniSirGlobal pMac);
-// Getting the 2.4GHz Channel list
-eHalStatus csrGet24GChannels(tpAniSirGlobal pMac);
 
 eHalStatus csrSetModifyProfileFields(tpAniSirGlobal pMac, tANI_U32 sessionId,
                                      tCsrRoamModifyProfileFields *pModifyProfileFields);
