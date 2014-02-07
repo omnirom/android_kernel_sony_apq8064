@@ -281,6 +281,7 @@ typedef enum
 #define WDA_DS_TX_START_XMIT  WLANTL_TX_START_XMIT
 #define WDA_DS_FINISH_ULA     WLANTL_FINISH_ULA
 
+#define VOS_TO_WPAL_PKT(_vos_pkt) ((wpt_packet*)_vos_pkt)
 
 #define WDA_TX_PACKET_FREED      0X0
 
@@ -1063,7 +1064,8 @@ tSirRetStatus uMacPostCtrlMsg(void* pSirGlobal, tSirMbMsg* pMb);
 
 tSirRetStatus wdaPostCtrlMsg(tpAniSirGlobal pMac, tSirMsgQ *pMsg);
 
-eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId);
+eHalStatus WDA_SetRegDomain(void * clientCtxt, v_REGDOMAIN_t regId,
+                                               tAniBool sendRegHint);
 
 #define HAL_USE_BD_RATE2_FOR_MANAGEMENT_FRAME 0x40 // Bit 6 will be used to control BD rate for Management frames
 
