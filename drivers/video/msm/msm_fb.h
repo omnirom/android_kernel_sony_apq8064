@@ -85,6 +85,7 @@ struct msm_fb_data_type {
 
 	struct device *dev;
 	boolean op_enable;
+	struct delayed_work backlight_worker;
 	uint32 fb_imgType;
 	boolean sw_currently_refreshing;
 	boolean sw_refreshing_enable;
@@ -227,6 +228,7 @@ struct msm_fb_data_type {
 	struct mutex power_lock;
 #endif
 	bool nvrw_prohibit_draw;
+	uint32 max_map_size;
 };
 struct msm_fb_backup_type {
 	struct fb_info info;
