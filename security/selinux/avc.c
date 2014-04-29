@@ -491,6 +491,10 @@ static void avc_audit_post_callback(struct audit_buffer *ab, void *a)
 	avc_dump_query(ab, ad->selinux_audit_data->slad->ssid,
 			   ad->selinux_audit_data->slad->tsid,
 			   ad->selinux_audit_data->slad->tclass);
+	if (ad->selinux_audit_data->slad->denied) {
+		audit_log_format(ab, " permissive=%u",
+				 ad->selinux_audit_data->slad->result ? 0 : 1);
+	}
 
 #ifdef CONFIG_SECURITY_SELINUX_AVC_EXTRA_INFO
 	avc_dump_extra_info(ab, ad);
@@ -499,7 +503,7 @@ static void avc_audit_post_callback(struct audit_buffer *ab, void *a)
 
 /* This is the slow part of avc audit with big stack footprint */
 static noinline int slow_avc_audit(u32 ssid, u32 tsid, u16 tclass,
-		u32 requested, u32 audited, u32 denied,
+		u32 requested, u32 audited, u32 denied, int result,
 		struct common_audit_data *a,
 #ifdef CONFIG_SECURITY_SELINUX_AVC_EXTRA_INFO
 		unsigned flags, int result)
@@ -534,6 +538,7 @@ static noinline int slow_avc_audit(u32 ssid, u32 tsid, u16 tclass,
 	slad.tsid = tsid;
 	slad.audited = audited;
 	slad.denied = denied;
+	slad.result = result;
 #ifdef CONFIG_SECURITY_SELINUX_AVC_EXTRA_INFO
 	slad.op_result = result;
 #endif
@@ -599,7 +604,7 @@ inline int avc_audit(u32 ssid, u32 tsid,
 		return 0;
 
 	return slow_avc_audit(ssid, tsid, tclass,
-		requested, audited, denied,
+		requested, audited, denied, result,
 #ifdef CONFIG_SECURITY_SELINUX_AVC_EXTRA_INFO
 		a, flags, result);
 #else
