@@ -467,6 +467,14 @@ static void hci_conn_timeout(unsigned long arg)
 		break;
 	case BT_CONFIG:
 	case BT_CONNECTED:
+		if (conn->type != ACL_LINK) {
+			struct hci_conn *acl = conn->link;
+			if (acl) {
+				acl->power_save = 1;
+				hci_conn_enter_active_mode(acl, 1);
+			}
+		}
+
 		if (!atomic_read(&conn->refcnt)) {
 			reason = hci_proto_disconn_ind(conn);
 			hci_acl_disconn(conn, reason);
@@ -1092,27 +1100,6 @@ timer:
 	}
 }
 
-void hci_conn_update_sniff_lp(struct hci_conn *conn, bool enable)
-{
-	struct hci_dev *hdev = conn->hdev;
-	struct hci_cp_write_link_policy cp;
-
-	BT_DBG("conn %p enable %d", conn, enable);
-
-	if (test_bit(HCI_RAW, &hdev->flags))
-		return;
-
-	if (conn->type == LE_LINK)
-		return;
-
-	cp.handle = cpu_to_le16(conn->handle);
-	if (enable)
-		cp.policy = conn->link_policy | HCI_LP_SNIFF ;
-	else
-		cp.policy = conn->link_policy & ~HCI_LP_SNIFF;
-	hci_send_cmd(hdev, HCI_OP_WRITE_LINK_POLICY, sizeof(cp), &cp);
-}
-
 static inline void hci_conn_stop_rssi_timer(struct hci_conn *conn)
 {
 	BT_DBG("conn %p", conn);
@@ -1461,16 +1448,3 @@ int hci_set_auth_info(struct hci_dev *hdev, void __user *arg)
 
 	return copy_to_user(arg, &req, sizeof(req)) ? -EFAULT : 0;
 }
-
-bool hci_get_sco_status(struct hci_conn *conn)
-{
-	if (!conn)
-		return false;
-
-	if (hci_conn_hash_lookup_state(conn->hdev, SCO_LINK, BT_CONNECTED) ||
-			(hci_conn_hash_lookup_state(conn->hdev, ESCO_LINK,
-						    BT_CONNECTED)))
-		return true;
-	return false;
-}
-

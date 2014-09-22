@@ -22,7 +22,6 @@ config ARM
 	select ARCH_BINFMT_ELF_RANDOMIZE_PIE
 	select HAVE_GENERIC_DMA_COHERENT
 	select HAVE_KERNEL_GZIP
-	select HAVE_KERNEL_LZ4
 	select HAVE_KERNEL_LZO
 	select HAVE_KERNEL_LZMA
 	select HAVE_KERNEL_XZ
@@ -2074,21 +2073,6 @@ config USE_OF
 	select IRQ_DOMAIN
 	help
 	  Include support for flattened device tree machine descriptions.
-
-config BUILD_ARM_APPENDED_DTB_IMAGE
-	bool "Build a concatenated zImage/dtb by default"
-	depends on OF
-	help
-	  Enabling this option will cause a concatenated zImage and DTB to
-	  be built by default (instead of a standalone zImage.)  The image
-	  will built in arch/arm/boot/zImage-dtb.<dtb name>
-
-config BUILD_ARM_APPENDED_DTB_IMAGE_NAME
-	string "Default dtb name"
-	depends on BUILD_ARM_APPENDED_DTB_IMAGE
-	help
-	  name of the dtb to append when building a concatenated
-	  zImage/dtb.
 
 # Compressed boot loader in ROM.  Yes, we really want to ask about
 # TEXT and BSS so we preserve their values in the config files.

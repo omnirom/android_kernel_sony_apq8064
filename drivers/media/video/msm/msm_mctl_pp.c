@@ -273,7 +273,16 @@ int msm_mctl_do_pp_divert(
 		p_mctl->pp_info.cur_frame_id[pcam_inst->image_mode];
 	div.frame.buf_idx  = buf_idx;
 	div.frame.handle = (uint32_t)vb;
-	msm_mctl_gettimeofday(&div.frame.timestamp);
+
+        /*Extract AVTimer TimeStamps if enabled*/
+	if(pcam_inst->avtimerOn){
+	    msm_mctl_getAVTimer(pcam_inst,&div.frame.timestamp);
+	    D("%s: Timestamp from AVTimer %ld.%ld", __func__,
+             div.frame.timestamp.tv_sec, div.frame.timestamp.tv_usec);
+	} else {
+	    msm_mctl_gettimeofday(&div.frame.timestamp);
+	}
+
 	vb->vidbuf.v4l2_buf.timestamp = div.frame.timestamp;
 	div.do_pp = pp_type;
 	D("%s Diverting frame %x id %d to userspace ", __func__,
@@ -641,6 +650,7 @@ int msm_mctl_pp_done(
 		image_mode = buf_handle.image_mode;
 	}
 	if (image_mode < 0 || image_mode >= MSM_MAX_IMG_MODE) {
+		spin_unlock_irqrestore(&p_mctl->pp_info.lock, flags);
 		pr_err("%s Invalid image mode\n", __func__);
 		return image_mode;
 	}

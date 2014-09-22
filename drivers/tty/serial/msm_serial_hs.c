@@ -1000,13 +1000,8 @@ static void msm_hs_set_termios(struct uart_port *uport,
 	/* Wait for baud rate and UART protocol parameters to set. */
 	udelay(200);
 
-	/*
-	 * Invoke Force RxStale Interrupt
-	 * On receiving this interrupt, send discard flush request
-	 * to ADM driver and ignore all received data.
-	 */
-	msm_hs_write(uport, UARTDM_CR_ADDR, FORCE_STALE_EVENT);
-	mb();
+	/* Set Transmit software time out */
+	uart_update_timeout(uport, c_cflag, bps);
 
 	/* Enable previously enabled all UART interrupts. */
 	msm_hs_write(uport, UARTDM_IMR_ADDR, msm_uport->imr_reg);
@@ -1978,6 +1973,12 @@ void msm_hs_request_clock_off(struct uart_port *uport) {
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
 
 	spin_lock_irqsave(&uport->lock, flags);
+	if (msm_uport->is_shutdown) {
+		pr_err("%s:Clock OFF fail.UART port is closed\n", __func__);
+		spin_unlock_irqrestore(&uport->lock, flags);
+		return;
+	}
+
 	if (msm_uport->clk_state == MSM_HS_CLK_ON) {
 		msm_uport->clk_state = MSM_HS_CLK_REQUEST_OFF;
 		msm_uport->clk_req_off_state = CLK_REQ_OFF_START;
@@ -2002,6 +2003,13 @@ void msm_hs_request_clock_on(struct uart_port *uport)
 
 	mutex_lock(&msm_uport->clk_mutex);
 	spin_lock_irqsave(&uport->lock, flags);
+
+	if (msm_uport->is_shutdown) {
+		pr_err("%s:Clock ON fail.UART port is closed\n", __func__);
+		spin_unlock_irqrestore(&uport->lock, flags);
+		mutex_unlock(&msm_uport->clk_mutex);
+		return;
+	}
 
 	switch (msm_uport->clk_state) {
 	case MSM_HS_CLK_OFF:
@@ -2134,16 +2142,6 @@ static int msm_hs_startup(struct uart_port *uport)
 	/* Stop remote UART to send data by setting RFR GPIO to LOW. */
 	msm_hs_write(uport, UARTDM_CR_ADDR, RFR_HIGH);
 
-	/*
-	 * Set RX_BREAK_ZERO_CHAR_OFF and RX_ERROR_CHAR_OFF
-	 * so any rx_break and character having parity of framing
-	 * error don't enter inside UART RX FIFO.
-	 */
-	data = msm_hs_read(uport, UARTDM_MR2_ADDR);
-	data |= (UARTDM_MR2_RX_BREAK_ZERO_CHAR_OFF |
-			UARTDM_MR2_RX_ERROR_CHAR_OFF);
-	msm_hs_write(uport, UARTDM_MR2_ADDR, data);
-	mb();
 
 	if (pdata && pdata->config_gpio) {
 		ret = msm_hs_config_uart_gpios(uport);
@@ -2506,6 +2504,7 @@ static int __devinit msm_hs_probe(struct platform_device *pdev)
 	uport->flags = UPF_BOOT_AUTOCONF;
 	uport->uartclk = 7372800;
 	msm_uport->imr_reg = 0x0;
+	msm_uport->is_shutdown = true;
 
 	msm_uport->clk = clk_get(&pdev->dev, "core_clk");
 	if (IS_ERR(msm_uport->clk))

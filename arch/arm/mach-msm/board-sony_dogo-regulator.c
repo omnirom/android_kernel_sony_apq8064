@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
- * Copyright (C) 2012 Sony Mobile Communications AB.
+ * Copyright (C) 2012-2013 Sony Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -80,6 +80,7 @@ VREG_CONSUMERS(L9) = {
 	REGULATOR_SUPPLY("apds9702_vdd",	"2-0054"),
 	REGULATOR_SUPPLY("mpu3050_vdd",		"2-0068"),
 	REGULATOR_SUPPLY("bma250_vdd",		"2-0018"),
+	REGULATOR_SUPPLY("bma250_vdd",		"2-0068"),
 	REGULATOR_SUPPLY("akm8963_vdd",		"2-000c"),
 	REGULATOR_SUPPLY("irda_vcc",		"irda"),
 };
@@ -190,6 +191,7 @@ VREG_CONSUMERS(S4) = {
 	REGULATOR_SUPPLY("vcc_i2c",		"3-0024"),
 	REGULATOR_SUPPLY("vddp",		"0-0048"),
 	REGULATOR_SUPPLY("hdmi_lvl_tsl",	"hdmi_msm.0"),
+	REGULATOR_SUPPLY("vdd-io",		"spi0.2"),
 	REGULATOR_SUPPLY("touch_vio",		"3-002c"),
 };
 VREG_CONSUMERS(S5) = {
@@ -215,6 +217,7 @@ VREG_CONSUMERS(LVS4) = {
 	REGULATOR_SUPPLY("apds9702_vio",	"2-0054"),
 	REGULATOR_SUPPLY("mpu3050_vio",		"2-0068"),
 	REGULATOR_SUPPLY("bma250_vio",		"2-0018"),
+	REGULATOR_SUPPLY("bma250_vio",		"2-0068"),
 	REGULATOR_SUPPLY("akm8963_vio",		"2-000c"),
 	REGULATOR_SUPPLY("irda_vio",		"irda"),
 };

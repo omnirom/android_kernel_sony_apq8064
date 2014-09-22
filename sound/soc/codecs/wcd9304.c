@@ -1510,7 +1510,6 @@ static int sitar_codec_enable_dmic(struct snd_soc_dapm_widget *w,
 	struct snd_soc_codec *codec = w->codec;
 	u16 tx_dmic_ctl_reg;
 	u8 dmic_clk_sel, dmic_clk_en;
-	u16 dmic_clk_mode;
 	unsigned int dmic;
 	int ret;
 
@@ -1525,13 +1524,11 @@ static int sitar_codec_enable_dmic(struct snd_soc_dapm_widget *w,
 	case 2:
 		dmic_clk_sel = 0x02;
 		dmic_clk_en = 0x01;
-		dmic_clk_mode = SITAR_A_CDC_DMIC_CLK0_MODE;
 		break;
 	case 3:
 	case 4:
 		dmic_clk_sel = 0x08;
 		dmic_clk_en = 0x04;
-		dmic_clk_mode = SITAR_A_CDC_DMIC_CLK1_MODE;
 		break;
 
 		break;
@@ -1547,8 +1544,6 @@ static int sitar_codec_enable_dmic(struct snd_soc_dapm_widget *w,
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
-		/* Configure the TLMM control registers as CORE_CDC_DMIC_CLK */
-		snd_soc_update_bits(codec, dmic_clk_mode, 0x7, 0x0);
 		snd_soc_update_bits(codec, SITAR_A_CDC_CLK_DMIC_CTL,
 				dmic_clk_sel, dmic_clk_sel);
 
@@ -1558,8 +1553,6 @@ static int sitar_codec_enable_dmic(struct snd_soc_dapm_widget *w,
 				dmic_clk_en, dmic_clk_en);
 		break;
 	case SND_SOC_DAPM_POST_PMD:
-		/* Configure the TLMM control registers as SLIMbus pin control*/
-		snd_soc_update_bits(codec, dmic_clk_mode, 0x7, 0x4);
 		snd_soc_update_bits(codec, SITAR_A_CDC_CLK_DMIC_CTL,
 				dmic_clk_en, 0);
 		break;
@@ -2299,6 +2292,7 @@ static int sitar_hph_pa_event(struct snd_soc_dapm_widget *w,
 	struct snd_soc_codec *codec = w->codec;
 	struct sitar_priv *sitar = snd_soc_codec_get_drvdata(codec);
 	u8 mbhc_micb_ctl_val;
+	static int hphlr_count;
 	pr_debug("%s: event = %d\n", __func__, event);
 
 	switch (event) {
@@ -2330,6 +2324,7 @@ static int sitar_hph_pa_event(struct snd_soc_dapm_widget *w,
 				 &sitar->hph_pa_dac_state);
 			clear_bit(SITAR_HPHL_DAC_OFF_ACK,
 				 &sitar->hph_pa_dac_state);
+			hphlr_count++;
 			if (sitar->hph_status & SND_JACK_OC_HPHL)
 				schedule_work(&sitar->hphlocp_work);
 		} else if (w->shift == 4) {
@@ -2337,17 +2332,19 @@ static int sitar_hph_pa_event(struct snd_soc_dapm_widget *w,
 				 &sitar->hph_pa_dac_state);
 			clear_bit(SITAR_HPHR_DAC_OFF_ACK,
 				 &sitar->hph_pa_dac_state);
+			hphlr_count++;
 			if (sitar->hph_status & SND_JACK_OC_HPHR)
 				schedule_work(&sitar->hphrocp_work);
 		}
-
-		SITAR_ACQUIRE_LOCK(sitar->codec_resource_lock);
-		sitar_codec_switch_micbias(codec, 0);
-		SITAR_RELEASE_LOCK(sitar->codec_resource_lock);
-
-		pr_debug("%s: sleep 10 ms after %s PA disable.\n", __func__,
-				w->name);
-		usleep_range(10000, 10000);
+		if (hphlr_count >= 2) {
+			SITAR_ACQUIRE_LOCK(sitar->codec_resource_lock);
+			sitar_codec_switch_micbias(codec, 0);
+			SITAR_RELEASE_LOCK(sitar->codec_resource_lock);
+			pr_debug("%s: sleep 10 ms after %s PA disable.\n",
+					__func__, w->name);
+			usleep_range(10000, 10000);
+			hphlr_count = 0;
+		}
 
 		if (sitar_is_line_pa_on(codec))
 			sitar_enable_classg(codec, true);
@@ -5900,12 +5897,6 @@ static const struct sitar_reg_mask_val sitar_codec_reg_init_val[] = {
 
 	/*enable External clock select*/
 	{SITAR_A_CDC_CLK_MCLK_CTL, 0x01, 0x01},
-
-	/* config DMIC Pins to GPIO mode */
-	{SITAR_A_CDC_DMIC_CLK0_MODE, 0x07, 0x04},
-	{SITAR_A_CDC_DMIC_CLK1_MODE, 0x07, 0x04},
-	{SITAR_A_PIN_CTL_OE0, 0x90, 0x90},
-	{SITAR_A_PIN_CTL_DATA0, 0x90, 0x90},
 
 	/*disabling the cp static overide gain*/
 	{SITAR_A_CP_STATIC, 0x10, 0x00},

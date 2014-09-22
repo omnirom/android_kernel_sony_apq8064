@@ -2,7 +2,7 @@
  *
  * MSM MDP Interface (used by framebuffer core)
  *
- * Copyright (c) 2007-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2007-2014, The Linux Foundation. All rights reserved.
  * Copyright (C) 2007 Google Incorporated
  * Copyright (C) 2012 Sony Mobile Communications AB.
  *
@@ -2428,14 +2428,8 @@ static int mdp_on(struct platform_device *pdev)
 
 	pr_debug("%s:+\n", __func__);
 
-	mdp_clk_ctrl(1);
 	if(mfd->index == 0)
 		mdp_iommu_max_map_size = mfd->max_map_size;
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-	ret = panel_next_on(pdev);
-	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
-	mdp_clk_ctrl(0);
-
 	if (mdp_rev >= MDP_REV_40) {
 		mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 		mdp_clk_ctrl(1);
@@ -2471,6 +2465,11 @@ static int mdp_on(struct platform_device *pdev)
 		vsync_cntrl.dev = mfd->fbi->dev;
 		atomic_set(&vsync_cntrl.suspend, 1);
 	}
+
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
+
+	ret = panel_next_on(pdev);
+	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_OFF, FALSE);
 
 	mdp_histogram_ctrl_all(TRUE);
 
@@ -3239,6 +3238,8 @@ static int mdp_probe(struct platform_device *pdev)
 			pdata->off = mdp4_overlay_writeback_off;
 			mfd->dma_fnc = mdp4_writeback_overlay;
 			mfd->dma = &dma_wb_data;
+			mutex_init(&mfd->writeback_mutex);
+			mutex_init(&mfd->unregister_mutex);
 			mdp4_display_intf_sel(EXTERNAL_INTF_SEL, DTV_INTF);
 		}
 		break;

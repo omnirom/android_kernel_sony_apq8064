@@ -2,7 +2,7 @@
 
 /*Qualcomm Secure Execution Environment Communicator (QSEECOM) driver
  *
- * Copyright (c) 2012, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -294,7 +294,7 @@ static int __qseecom_set_sb_memory(struct qseecom_registered_listener_list *svc,
 	/* Get the handle of the shared fd */
 	svc->ihandle = ion_import_dma_buf(qseecom.ion_clnt,
 					listener->ifd_data_fd);
-	if (svc->ihandle == NULL) {
+	if (IS_ERR_OR_NULL(svc->ihandle)) {
 		pr_err("Ion client could not retrieve the handle\n");
 		return -ENOMEM;
 	}
@@ -1191,6 +1191,31 @@ static int qseecom_send_modfd_cmd(struct qseecom_dev_handle *data,
 		pr_err("copy_from_user failed\n");
 		return ret;
 	}
+
+	if (req.cmd_req_buf == NULL || req.resp_buf == NULL) {
+		pr_err("cmd buffer or response buffer is null\n");
+		return -EINVAL;
+	}
+	if (((uint32_t)req.cmd_req_buf < data->client.user_virt_sb_base) ||
+		((uint32_t)req.cmd_req_buf >= (data->client.user_virt_sb_base +
+					data->client.sb_length))) {
+		pr_err("cmd buffer address not within shared bufffer\n");
+		return -EINVAL;
+	}
+
+	if (((uint32_t)req.resp_buf < data->client.user_virt_sb_base)  ||
+		((uint32_t)req.resp_buf >= (data->client.user_virt_sb_base +
+					data->client.sb_length))){
+		pr_err("response buffer address not within shared bufffer\n");
+		return -EINVAL;
+	}
+
+	if (req.cmd_req_len == 0 || req.cmd_req_len > data->client.sb_length ||
+		req.resp_len > data->client.sb_length) {
+		pr_err("cmd or response buffer length not valid\n");
+		return -EINVAL;
+	}
+
 	send_cmd_req.cmd_req_buf = req.cmd_req_buf;
 	send_cmd_req.cmd_req_len = req.cmd_req_len;
 	send_cmd_req.resp_buf = req.resp_buf;
@@ -1472,16 +1497,17 @@ int qseecom_start_app(struct qseecom_handle **handle,
 	app_ireq.qsee_cmd_id = QSEOS_APP_LOOKUP_COMMAND;
 	memcpy(app_ireq.app_name, app_name, MAX_APP_NAME_SIZE);
 	ret = __qseecom_check_app_exists(app_ireq);
-	if (ret < 0) {
-		ret = -EINVAL;
-		goto exit_free_handle;
-	}
+	if (ret < 0)
+		return -EINVAL;
 
 	data = kzalloc(sizeof(*data), GFP_KERNEL);
 	if (!data) {
-		ret = -ENOMEM;
 		pr_err("kmalloc failed\n");
-		goto exit_free_handle;
+		if (ret == 0) {
+			kfree(*handle);
+			*handle = NULL;
+		}
+		return -ENOMEM;
 	}
 	data->abort = 0;
 	data->type = QSEECOM_CLIENT_APP;
@@ -1497,9 +1523,11 @@ int qseecom_start_app(struct qseecom_handle **handle,
 	data->client.ihandle = ion_alloc(qseecom.ion_clnt, size, 4096,
 				ION_HEAP(ION_QSECOM_HEAP_ID), 0);
 	if (IS_ERR_OR_NULL(data->client.ihandle)) {
-		ret = -EINVAL;
 		pr_err("Ion client could not retrieve the handle\n");
-		goto exit_free_data;
+		kfree(data);
+		kfree(*handle);
+		*handle = NULL;
+		return -EINVAL;
 	}
 
 	if (ret > 0) {
@@ -1527,17 +1555,22 @@ int qseecom_start_app(struct qseecom_handle **handle,
 		ret = __qseecom_load_fw(data, app_name);
 		mutex_unlock(&app_access_lock);
 
-		if (ret < 0)
-			goto exit_ion_free;
-
+		if (ret < 0) {
+			kfree(*handle);
+			kfree(data);
+			*handle = NULL;
+			return ret;
+		}
 		data->client.app_id = ret;
 	}
 	if (!found_app) {
 		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
 		if (!entry) {
-			ret =  -ENOMEM;
 			pr_err("kmalloc failed\n");
-			goto exit_ion_free;
+			kfree(data);
+			kfree(*handle);
+			*handle = NULL;
+			return -ENOMEM;
 		}
 		entry->app_id = ret;
 		entry->ref_cnt = 1;
@@ -1562,8 +1595,7 @@ int qseecom_start_app(struct qseecom_handle **handle,
 	kclient_entry = kzalloc(sizeof(*kclient_entry), GFP_KERNEL);
 	if (!kclient_entry) {
 		pr_err("kmalloc failed\n");
-		ret = -ENOMEM;
-		goto exit_ion_unmap;
+		return -ENOMEM;
 	}
 	kclient_entry->handle = *handle;
 
@@ -1573,22 +1605,6 @@ int qseecom_start_app(struct qseecom_handle **handle,
 	spin_unlock_irqrestore(&qseecom.registered_kclient_list_lock, flags);
 
 	return 0;
-
-exit_ion_unmap:
-	if (!IS_ERR_OR_NULL(data->client.ihandle))
-		ion_unmap_kernel(qseecom.ion_clnt, data->client.ihandle);
-	kfree(entry);
-exit_ion_free:
-	if (!IS_ERR_OR_NULL(data->client.ihandle)) {
-		ion_free(qseecom.ion_clnt, data->client.ihandle);
-		data->client.ihandle = NULL;
-	}
-exit_free_data:
-	kfree(data);
-exit_free_handle:
-	kfree(*handle);
-	*handle = NULL;
-	return ret;
 }
 EXPORT_SYMBOL(qseecom_start_app);
 
@@ -2040,11 +2056,6 @@ static long qseecom_ioctl(struct file *file, unsigned cmd,
 	int ret = 0;
 	struct qseecom_dev_handle *data = file->private_data;
 	void __user *argp = (void __user *) arg;
-
-	if (!data) {
-		pr_err("Invalid/uninitialized device handle\n");
-		return -EINVAL;
-	}
 
 	if (data->abort) {
 		pr_err("Aborting qseecom driver\n");

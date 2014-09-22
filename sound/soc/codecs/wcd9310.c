@@ -1,6 +1,5 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  * Copyright (C) 2012 Sony Mobile Communications AB.
- * Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -7255,7 +7254,7 @@ static void tabla_hs_correct_gpio_plug(struct work_struct *work)
 			    retry == NUM_ATTEMPTS_TO_REPORT &&
 			    tabla->current_plug == PLUG_TYPE_NONE) {
 				tabla_codec_report_plug(codec, 1,
-							SND_JACK_HEADPHONE);
+							SND_JACK_UNSUPPORTED);
 			}
 		} else if (plug_type == PLUG_TYPE_HEADPHONE) {
 			pr_debug("Good headphone detected, continue polling mic\n");
@@ -7547,7 +7546,7 @@ static void tabla_hs_insert_irq_extn(struct tabla_priv *priv,
 			__func__);
 		tabla_codec_enable_hs_detect(codec, 1, MBHC_USE_HPHL_TRIGGER,
 					     false);
-	} else {
+	} else  {
 		pr_debug("%s: HPHL trigger received, detecting plug type\n",
 			__func__);
 		tabla_codec_detect_plug_type(codec);
@@ -7777,9 +7776,9 @@ static irqreturn_t tabla_hs_remove_irq(int irq, void *data)
 
 	if ((priv->mbhc_cfg.detect_extn_cable &&
 	     !tabla_hs_gpio_level_remove(priv)) ||
-	    !priv->mbhc_cfg.gpio)
+	    !priv->mbhc_cfg.gpio) {
 		tabla_hs_remove_irq_nogpio(priv);
-	else
+	} else
 		tabla_hs_remove_irq_gpio(priv);
 
 	/* if driver turned off vddio switch and headset is not removed,

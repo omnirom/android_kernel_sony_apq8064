@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  * Copyright (C) 2012-2013 Sony Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -52,6 +52,10 @@
 #if defined CONFIG_SENSORS_MPU6050
 #include <linux/mpu.h>
 #endif
+#if defined CONFIG_INV_MPU_IIO
+#include <linux/iio_mpu.h>
+#include "gyro-semc_common.h"
+#endif
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
 #include <asm/hardware/gic.h>
@@ -102,12 +106,28 @@
 #include <linux/apds9702.h>
 #endif
 #include <linux/console.h>
+#ifdef CONFIG_SONY_ONESEG_TUNER_PM
+#include "board-sony_yuga-oneseg.h"
+#ifdef CONFIG_MACH_SONY_GAGA_KDDI
+#include "board-sony_gaga-kddi-oneseg.h"
+#endif
+#endif
+#ifdef CONFIG_SOMC_ISDBT_TUNER
+#include "board-sony_fusion3-isdbt.h"
+#endif
 #include <mach/restart.h>
 #include <mach/msm_iomap.h>
+#ifdef CONFIG_MSM_GSBI7_UART
+#include <mach/msm_serial_hs_lite.h>
+#include <linux/serial_core.h>
+#endif
 #ifdef CONFIG_BACKLIGHT_LP855X
 #include <linux/lp855x.h>
 #endif
 
+#ifdef CONFIG_SONY_FELICA_SUPPORT
+#include "felica-fusion3.h"
+#endif
 #ifdef CONFIG_INPUT_BU52031NVX
 #include <linux/bu52031nvx.h>
 #endif
@@ -163,7 +183,7 @@
 #define MSM_ION_MFC_META_SIZE	0x40000 /* 256 Kbytes */
 #define MSM_CONTIG_MEM_SIZE	0x65000
 #ifdef CONFIG_MSM_IOMMU
-#define MSM_ION_MM_SIZE		0x5000000
+#define MSM_ION_MM_SIZE		0x6000000
 #define MSM_ION_CAMERA_SIZE	0x3200000
 #define MSM_ION_SF_SIZE		0
 #define MSM_ION_QSECOM_SIZE	0x780000 /* (7.5MB) */
@@ -203,14 +223,26 @@
 
 #if defined(CONFIG_MACH_SONY_YUGA)
 #include "board-sony_fusion3_yuga.h"
+#elif defined(CONFIG_MACH_SONY_YUGA_DCM)
+#include "board-sony_fusion3_yuga.h"
 #elif defined(CONFIG_MACH_SONY_POLLUX)
 #include "board-sony_fusion3_pollux.h"
+#elif defined(CONFIG_MACH_SONY_POLLUX_CDB)
+#include "board-sony_fusion3_pollux.h"
+#elif defined(CONFIG_MACH_SONY_POLLUX_WINDY_CDB)
+#include "board-sony_fusion3_pollux.h"
 #elif defined(CONFIG_MACH_SONY_POLLUX_WINDY)
+#include "board-sony_fusion3_pollux.h"
+#elif defined(CONFIG_MACH_SONY_POLLUX_DCM)
 #include "board-sony_fusion3_pollux.h"
 #elif defined(CONFIG_MACH_SONY_ODIN)
 #include "board-sony_fusion3_odin.h"
 #elif defined(CONFIG_MACH_SONY_DOGO)
 #include "board-sony_fusion3_dogo.h"
+#elif defined(CONFIG_MACH_SONY_DOGO_DCM)
+#include "board-sony_fusion3_dogo.h"
+#elif defined(CONFIG_MACH_SONY_GAGA_KDDI)
+#include "board-sony_fusion3_gaga.h"
 #else
 #error "ERROR: Unknown machine!"
 #endif
@@ -332,6 +364,8 @@ static void __init reserve_rtb_memory(void)
 {
 #if defined(CONFIG_MSM_RTB)
 	apq8064_reserve_table[MEMTYPE_EBI1].size += apq8064_rtb_pdata.size;
+	pr_info("mem_map: rtb reserved with size 0x%x in pool\n",
+			apq8064_rtb_pdata.size);
 #endif
 }
 
@@ -364,7 +398,9 @@ static void __init reserve_pmem_memory(void)
 	reserve_memory_for(&android_pmem_pdata);
 	reserve_memory_for(&android_pmem_audio_pdata);
 #endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
-apq8064_reserve_table[MEMTYPE_EBI1].size += msm_contig_mem_size;
+    apq8064_reserve_table[MEMTYPE_EBI1].size += msm_contig_mem_size;
+	pr_info("mem_map: contig_mem reserved with size 0x%x in pool\n",
+			msm_contig_mem_size);
 #endif /*CONFIG_ANDROID_PMEM*/
 }
 
@@ -544,6 +580,9 @@ static void __init apq8064_reserve_fixed_area(unsigned long fixed_area_size)
 
 	ret = memblock_remove(reserve_info->fixed_area_start,
 		reserve_info->fixed_area_size);
+	pr_info("mem_map: fixed_area reserved at 0x%lx with size 0x%lx\n",
+		reserve_info->fixed_area_start,
+		reserve_info->fixed_area_size);
 	BUG_ON(ret);
 #endif
 }
@@ -613,7 +652,7 @@ static void __init reserve_ion_memory(void)
 
 			if (fixed_position != NOT_FIXED)
 				fixed_size += heap->size;
-			else
+			else if (!use_cma)
 				reserve_mem_for_ion(MEMTYPE_EBI1, heap->size);
 
 			if (fixed_position == FIXED_LOW) {
@@ -657,6 +696,9 @@ static void __init reserve_ion_memory(void)
 		BUG_ON(!IS_ALIGNED(fixed_low_size + HOLE_SIZE, SECTION_SIZE));
 		ret = memblock_remove(fixed_low_start,
 				      fixed_low_size + HOLE_SIZE);
+		pr_info("mem_map: fixed_low_area reserved at 0x%lx with size \
+				0x%x\n", fixed_low_start,
+				      fixed_low_size + HOLE_SIZE);
 		BUG_ON(ret);
 	}
 
@@ -667,6 +709,9 @@ static void __init reserve_ion_memory(void)
 	} else {
 		BUG_ON(!IS_ALIGNED(fixed_middle_size, SECTION_SIZE));
 		ret = memblock_remove(fixed_middle_start, fixed_middle_size);
+		pr_info("mem_map: fixed_middle_area reserved at 0x%lx with \
+				size 0x%x\n", fixed_middle_start,
+				fixed_middle_size);
 		BUG_ON(ret);
 	}
 
@@ -678,6 +723,9 @@ static void __init reserve_ion_memory(void)
 		/* This is the end of the fixed area so it's okay to round up */
 		fixed_high_size = ALIGN(fixed_high_size, SECTION_SIZE);
 		ret = memblock_remove(fixed_high_start, fixed_high_size);
+		pr_info("mem_map: fixed_high_area reserved at 0x%lx with size \
+				0x%x\n", fixed_high_start,
+				fixed_high_size);
 		BUG_ON(ret);
 	}
 
@@ -745,6 +793,8 @@ static void __init reserve_cache_dump_memory(void)
 	total = apq8064_cache_dump_pdata.l1_size +
 		apq8064_cache_dump_pdata.l2_size;
 	apq8064_reserve_table[MEMTYPE_EBI1].size += total;
+	pr_info("mem_map: cache_dump reserved with size 0x%x in pool\n",
+			total);
 #endif
 }
 
@@ -2330,7 +2380,8 @@ err_vdd:
 
 }
 
-#if defined CONFIG_INPUT_BMA250_NG || defined CONFIG_INPUT_BMA250
+#if defined CONFIG_INPUT_BMA250_NG || defined CONFIG_INPUT_BMA250 || \
+	defined CONFIG_INV_IIO_MPU3050_ACCEL_SLAVE_BMA250
 #define BMA250_DEFAULT_RATE 50
 static int bma250_power_mode(struct device *dev, int enable)
 {
@@ -2353,7 +2404,9 @@ static int bma250_power_mode(struct device *dev, int enable)
 out:
 	return rc;
 }
+#endif
 
+#if defined CONFIG_INPUT_BMA250_NG || defined CONFIG_INPUT_BMA250
 static struct registers bma250_reg_setup = {
 	.range                = BMA250_RANGE_2G,
 	.bw_sel               = BMA250_BW_250HZ,
@@ -2372,7 +2425,21 @@ static struct bma250_platform_data bma250_platform_data = {
 };
 #endif
 
-#ifdef CONFIG_INPUT_AKM8963
+#ifdef CONFIG_INV_IIO_MPU3050_ACCEL_SLAVE_BMA250
+int acc_power_supply(struct device *dev, int enable)
+{
+	static bool powered;
+	if ((powered && enable) || !(powered || enable)) {
+		dev_err(dev, "%s: unbalanced, enable %d", __func__, enable);
+		return 0;
+	}
+	powered = enable;
+	dev_dbg(dev, "%s: enable %d", __func__, enable);
+	return bma250_power_mode(dev, enable);
+}
+#endif
+
+#if defined CONFIG_INPUT_AKM8963 || defined CONFIG_INV_AK89XX_IIO
 #define AKM8963_GPIO 7
 static int akm8963_gpio_setup(struct device *dev)
 {
@@ -2409,6 +2476,7 @@ out:
 	return rc;
 }
 
+#ifdef CONFIG_INPUT_AKM8963
 static struct akm8963_platform_data akm8963_platform_data = {
 	.setup		= akm8963_gpio_setup,
 	.shutdown	= akm8963_gpio_shutdown,
@@ -2416,7 +2484,34 @@ static struct akm8963_platform_data akm8963_platform_data = {
 };
 #endif
 
-#ifdef CONFIG_SENSORS_MPU3050
+#ifdef CONFIG_INV_AK89XX_IIO
+int compass_power_supply(struct device *dev, int enable)
+{
+	int rc;
+	static bool powered;
+	if ((powered && enable) || !(powered || enable)) {
+		dev_err(dev, "%s: unbalanced, enable %d", __func__, enable);
+		return 0;
+	}
+	dev_dbg(dev, "%s: enable %d", __func__, enable);
+	powered = enable;
+	if (enable) {
+		rc = akm8963_gpio_setup(dev);
+		if (!rc) {
+			rc = akm8963_power_mode(dev, 1);
+			if (rc)
+				(void)akm8963_gpio_shutdown(dev);
+		}
+		return rc;
+	}
+	rc = akm8963_power_mode(dev, 0);
+	akm8963_gpio_shutdown(dev);
+	return rc;
+}
+#endif
+#endif
+
+#if defined(CONFIG_SENSORS_MPU3050) || defined(CONFIG_INV_MPU_IIO)
 #define MPU3050_GPIO 28
 int mpu3050_gpio_setup(struct device *dev, int enable)
 {
@@ -2455,6 +2550,19 @@ int mpu3050_power_mode(struct device *dev, int enable)
 out:
 	return rc;
 }
+#ifdef CONFIG_INV_MPU_IIO
+int mpu_power_supply(struct device *dev, int enable)
+{
+	static bool powered;
+	if ((powered && enable) || !(powered || enable)) {
+		dev_err(dev, "%s: unbalanced, enable %d", __func__, enable);
+		return 0;
+	}
+	powered = enable;
+	dev_dbg(dev, "%s: enable %d", __func__, enable);
+	return mpu3050_power_mode(dev, enable);
+}
+#endif
 #endif
 
 #ifdef CONFIG_SENSORS_MPU6050
@@ -3160,7 +3268,7 @@ static struct platform_device msm_tsens_device = {
 static struct msm_thermal_data msm_thermal_pdata = {
 	.sensor_id = 7,
 	.poll_ms = 1000,
-	.limit_temp_degC = 110,
+	.limit_temp_degC = 90,
 	.temp_hysteresis_degC = 5,
 	.freq_step = 1,
 	.core_limit_temp_degC = 80,
@@ -3621,6 +3729,45 @@ struct platform_device semc_gpios_device = {
 };
 #endif
 
+#ifdef CONFIG_MSM_GSBI7_UART
+#define GSBI7_UART_TX_GPIO 82
+#define GSBI7_UART_RX_GPIO 83
+static int felica_uart_pre_startup(struct uart_port *uport)
+{
+	struct tty_struct *tty = uport->state->port.tty;
+
+	mutex_lock(&tty->termios_mutex);
+	tty->termios->c_ispeed = 460800;
+	tty->termios->c_ospeed = 460800;
+	tty->termios->c_cflag |= B460800;
+	tty->termios->c_cflag &= ~0xD;
+	tty->termios->c_cflag |= (CLOCAL | CREAD);
+	tty->termios->c_cflag &= ~PARENB;
+	tty->termios->c_cflag &= ~CSTOPB;
+	tty->termios->c_cflag &= ~CSIZE;
+	tty->termios->c_cflag &= ~PARODD;
+	tty->termios->c_cflag |= CS8;
+	tty->termios->c_lflag &= ~(ICANON | IEXTEN | ISIG | ECHO);
+	tty->termios->c_oflag &= ~OPOST;
+	tty->termios->c_iflag &= ~(ICRNL | INPCK | ISTRIP |
+						IXON | BRKINT);
+	tty->termios->c_cc[VMIN] = 0;
+	tty->termios->c_cc[VTIME] = 0;
+	tty->ldisc->ops->set_termios(tty, NULL);
+	mutex_unlock(&tty->termios_mutex);
+
+	return 0;
+}
+
+static struct msm_serial_hslite_platform_data msm_uart_gsbi7_pdata = {
+	.config_gpio    = 1,
+	.uart_tx_gpio   = GSBI7_UART_TX_GPIO,
+	.uart_rx_gpio   = GSBI7_UART_RX_GPIO,
+	.line           = 3,
+	.pre_startup    = felica_uart_pre_startup,
+};
+#endif
+
 #ifdef CONFIG_INPUT_BU52031NVX
 #define BU52031NVX_GPIO PM8921_GPIO_PM_TO_SYS(2)
 
@@ -3796,6 +3943,15 @@ static struct platform_device *common_devices[] __initdata = {
 	&battery_bcl_device,
 #endif
 	&apq8064_msm_mpd_device,
+#ifdef CONFIG_SONY_ONESEG_TUNER_PM
+	&oneseg_tunerpm_device,
+#endif
+#ifdef CONFIG_SOMC_ISDBT_TUNER
+	&isdbt_tunerpm_device,
+#endif
+#ifdef CONFIG_SONY_FELICA_SUPPORT
+	&sony_felica_device,
+#endif
 #ifdef CONFIG_INPUT_BU52031NVX
 	&bu52031nvx_device,
 #endif
@@ -3804,6 +3960,9 @@ static struct platform_device *common_devices[] __initdata = {
 static struct platform_device *cdp_devices[] __initdata = {
 	&apq8064_device_uart_gsbi1,
 	&apq8064_device_uart_gsbi5,
+#ifdef CONFIG_MSM_GSBI7_UART
+	&apq8064_device_uart_gsbi7,
+#endif
 	&msm_device_sps_apq8064,
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
@@ -4161,6 +4320,13 @@ struct i2c_registry {
 };
 
 static struct i2c_board_info gsbi2_peripherals_info[] __initdata = {
+#ifdef CONFIG_INV_AK89XX_IIO
+	{
+		/* Config-spec is 8-bit = 0x30, src-code need 7-bit => 0x18 */
+		I2C_BOARD_INFO("akm8963", 0x18 >> 1),
+		.platform_data = &compass_data,
+	},
+#endif
 #ifdef CONFIG_VIBRATOR_LC898300
 	{
 		/* Config-spec is 8-bit = 0x92, src-code need 7-bit => 0x49 */
@@ -4193,6 +4359,14 @@ static struct i2c_board_info gsbi2_peripherals_info[] __initdata = {
 	{
 		/* Config-spec is 8-bit = 0xD0, src-code need 7-bit => 0x68 */
 		I2C_BOARD_INFO(MPU_NAME, 0xD0 >> 1),
+		.irq = MSM_GPIO_TO_INT(MPU3050_GPIO),
+		.platform_data = &mpu_data,
+	},
+#endif
+#ifdef CONFIG_INV_MPU_IIO
+	{
+		/* Config-spec is 8-bit = 0xD0, src-code need 7-bit => 0x68 */
+		I2C_BOARD_INFO("mpu3050", 0xD0 >> 1),
 		.irq = MSM_GPIO_TO_INT(MPU3050_GPIO),
 		.platform_data = &mpu_data,
 	},
@@ -4268,7 +4442,9 @@ static void __init register_i2c_devices(void)
 	/* Build the matching 'supported_machs' bitmask */
 	if (machine_is_apq8064_cdp())
 		mach_mask = I2C_SURF;
-	else if (machine_is_apq8064_mtp() || machine_is_sony_fusion3() || machine_is_sony_pollux_windy())
+	else if (machine_is_apq8064_mtp() || machine_is_sony_fusion3() ||
+		machine_is_sony_pollux_windy_cdb() ||
+		machine_is_sony_pollux_windy())
 		mach_mask = I2C_FFA;
 	else if (machine_is_apq8064_liquid())
 		mach_mask = I2C_LIQUID;
@@ -4383,10 +4559,15 @@ static void __init apq8064_common_init(void)
 	apq8064_device_otg.dev.platform_data = &msm_otg_pdata;
 	apq8064_ehci_host_init();
 	apq8064_init_buses();
+#ifdef CONFIG_MSM_GSBI7_UART
+	apq8064_device_uart_gsbi7.dev.platform_data = &msm_uart_gsbi7_pdata;
+#endif
 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
 		msm_hsic_pdata.swfi_latency =
 			msm_rpmrs_levels[0].latency_us;
-	if ((machine_is_apq8064_mtp() || machine_is_sony_fusion3()) && !machine_is_sony_pollux_windy()) {
+	if ((machine_is_apq8064_mtp() || machine_is_sony_fusion3()) &&
+		!machine_is_sony_pollux_windy_cdb() &&
+		!machine_is_sony_pollux_windy()) {
 		msm_hsic_pdata.log2_irq_thresh = 5;
 		apq8064_device_hsic_host.dev.platform_data = &msm_hsic_pdata;
 		device_initialize(&apq8064_device_hsic_host.dev);
@@ -4394,7 +4575,9 @@ static void __init apq8064_common_init(void)
 	apq8064_pm8xxx_gpio_mpp_init();
 	apq8064_init_mmc();
 
-	if ((machine_is_apq8064_mtp() || machine_is_sony_fusion3()) && !machine_is_sony_pollux_windy()) {
+	if ((machine_is_apq8064_mtp() || machine_is_sony_fusion3()) &&
+		!machine_is_sony_pollux_windy_cdb() &&
+		!machine_is_sony_pollux_windy()) {
 		mdm_8064_device.dev.platform_data = &amdm_platform_data;
 		platform_device_register(&mdm_8064_device);
 	}
@@ -4408,6 +4591,8 @@ static void __init apq8064_common_init(void)
 	switch (sony_hw()) {
 	case HW_YUGA_MAKI:
 	case HW_POLLUX_MAKI:
+	case HW_DOGO_MAKI:
+	case HW_GAGA:
 		isdb_tmm_vreg_low_power_mode();
 	}
 
@@ -4450,7 +4635,9 @@ static void __init sony_fusion3_very_early_init(void)
 	apq8064_early_reserve();
 }
 
-#if defined(CONFIG_MACH_SONY_POLLUX_WINDY)
+#if defined(CONFIG_MACH_SONY_POLLUX_WINDY_CDB)
+MACHINE_START(SONY_POLLUX_WINDY_CDB, "Sony Mobile fusion3")
+#elif defined(CONFIG_MACH_SONY_POLLUX_WINDY)
 MACHINE_START(SONY_POLLUX_WINDY, "Sony Mobile fusion3")
 #else
 MACHINE_START(SONY_FUSION3, "Sony Mobile fusion3")

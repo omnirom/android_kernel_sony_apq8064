@@ -1,4 +1,5 @@
 /* Copyright (c) 2009-2013, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2013 Sony Mobile Communications AB.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -449,7 +450,7 @@ int msm_rotator_imem_allocate(int requestor)
 		rc = 1;
 #endif
 	if (rc == 1) {
-		cancel_delayed_work(&msm_rotator_dev->imem_clk_work);
+		cancel_delayed_work_sync(&msm_rotator_dev->imem_clk_work);
 		if (msm_rotator_dev->imem_clk_state != CLK_EN
 			&& msm_rotator_dev->imem_clk) {
 			clk_prepare_enable(msm_rotator_dev->imem_clk);
@@ -1347,12 +1348,10 @@ static int msm_rotator_ycxcx_h2v2_2pass(struct msm_rotator_img_info *info,
 
 	msm_rotator_dev->processing = 1;
 	iowrite32(0x1, MSM_ROTATOR_START);
-	mutex_unlock(&msm_rotator_dev->rotator_lock);
 	/* End of Pass-1 */
 	wait_event(msm_rotator_dev->wq,
 		   (msm_rotator_dev->processing == 0));
 	/* Beginning of Pass-2 */
-	mutex_lock(&msm_rotator_dev->rotator_lock);
 	status = (unsigned char)ioread32(MSM_ROTATOR_INTR_STATUS);
 	if ((status & 0x03) != 0x01) {
 		pr_err("%s(): AXI Bus Error, issuing SW_RESET\n",
@@ -2027,7 +2026,7 @@ static int msm_rotator_do_rotate_sub(
 	msm_rotator_wait_for_fence(commit_info->acq_fen);
 	commit_info->acq_fen = NULL;
 
-	cancel_delayed_work(&msm_rotator_dev->rot_clk_work);
+	cancel_delayed_work_sync(&msm_rotator_dev->rot_clk_work);
 	if (msm_rotator_dev->rot_clk_state != CLK_EN) {
 		enable_rot_clks();
 		msm_rotator_dev->rot_clk_state = CLK_EN;
@@ -2139,10 +2138,8 @@ static int msm_rotator_do_rotate_sub(
 
 	msm_rotator_dev->processing = 1;
 	iowrite32(0x1, MSM_ROTATOR_START);
-	mutex_unlock(&msm_rotator_dev->rotator_lock);
 	wait_event(msm_rotator_dev->wq,
 		   (msm_rotator_dev->processing == 0));
-	mutex_lock(&msm_rotator_dev->rotator_lock);
 	status = (unsigned char)ioread32(MSM_ROTATOR_INTR_STATUS);
 	if ((status & 0x03) != 0x01) {
 		pr_err("%s(): AXI Bus Error, issuing SW_RESET\n", __func__);
@@ -2284,7 +2281,7 @@ static void rot_commit_wq_handler(struct work_struct *work)
 	mutex_unlock(&mrd->commit_wq_mutex);
 }
 
-static void msm_rotator_set_perf_level(u32 wh, u32 is_rgb)
+static u32 msm_rotator_set_perf_level(u32 wh, u32 is_rgb)
 {
 	u32 perf_level;
 
@@ -2302,6 +2299,7 @@ static void msm_rotator_set_perf_level(u32 wh, u32 is_rgb)
 		perf_level);
 #endif
 
+	return perf_level;
 }
 
 static int rot_enable_iommu_clocks(struct msm_rotator_dev *rot_dev)
@@ -2397,6 +2395,7 @@ static int msm_rotator_start(unsigned long arg,
 	unsigned int is_planar420 = 0;
 	int fast_yuv_en = 0, enable_2pass = 0;
 	struct rot_sync_info *sync_info;
+	u32 perf_level;
 
 	if (copy_from_user(&info, (void __user *)arg, sizeof(info)))
 		return -EFAULT;
@@ -2545,7 +2544,18 @@ static int msm_rotator_start(unsigned long arg,
 
 	mutex_lock(&msm_rotator_dev->rotator_lock);
 
-	msm_rotator_set_perf_level((info.src.width*info.src.height), is_rgb);
+	perf_level = msm_rotator_set_perf_level(
+				(info.src.width*info.src.height), is_rgb);
+	dev_info(msm_rotator_dev->device,
+		 "scale: %i, rot: %i, src: %ix%i, dst: %ix%i, s_dst: %ix%i, " \
+		 "sfmt: %i, dfmt: %i => fyuv: %i, pl: %u\n",
+		 info.downscale_ratio, info.rotations,
+		 info.src.width, info.src.height,
+		 info.dst.width, info.dst.height,
+		 dst_w, dst_h,
+		 info.src.format,
+		 info.dst.format,
+		 fast_yuv_en, perf_level);
 
 	for (s = 0; s < MAX_SESSIONS; s++) {
 		if ((msm_rotator_dev->rot_session[s] != NULL) &&

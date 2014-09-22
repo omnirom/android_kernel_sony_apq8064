@@ -767,7 +767,8 @@ int ptrace_request(struct task_struct *child, long request,
 		 * tracee into STOP.
 		 */
 		if (likely(task_set_jobctl_pending(child, JOBCTL_TRAP_STOP)))
-			ptrace_signal_wake_up(child, child->jobctl & JOBCTL_LISTENING);
+			ptrace_signal_wake_up(child, child->jobctl &
+			JOBCTL_LISTENING);
 
 		unlock_task_sighand(child, &flags);
 		ret = 0;

@@ -27,8 +27,8 @@
 #include <linux/tick.h>
 #include <linux/delay.h>
 #include <linux/platform_device.h>
-#include <linux/nmi.h>
 #include <linux/of_platform.h>
+#include <linux/nmi.h>
 #include <mach/msm_iomap.h>
 #include <mach/socinfo.h>
 #include <mach/system.h>
@@ -56,8 +56,8 @@
 #include "timer.h"
 #include "pm-boot.h"
 #include <mach/event_timer.h>
-#include <mach/power_debug.h>
 #include <linux/cpu_pm.h>
+#include <mach/power_debug.h>
 
 /******************************************************************************
  * Debug Definitions
