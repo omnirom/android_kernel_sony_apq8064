@@ -3595,6 +3595,8 @@ CONFIG_IOMMU_PGTABLES_L2=y
 # Suspend backoff
 #
 CONFIG_SUSPEND_BACKOFF=y
+# CONFIG_SENSORS is not set
+# CONFIG_SENSORS_SSC is not set
 
 #
 # File systems
