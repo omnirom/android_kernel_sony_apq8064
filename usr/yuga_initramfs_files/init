@@ -1,0 +1,71 @@
+#!/stage1/busybox sh
+set +x
+_PATH="$PATH"
+export PATH=/stage1
+
+busybox cd /
+busybox date >>boot.txt
+exec >>boot.txt 2>&1
+busybox rm /init
+
+# mount filesystems
+busybox mount -t proc proc /proc
+busybox mount -t sysfs sysfs /sys
+
+# include device specific vars
+source /stage1/bootrec-device
+
+# create device nodes
+# Per linux Documentation/devices.txt
+#busybox mknod -m 600 /dev/block/mmcblk0 b 179 0
+#for i in $(busybox seq 0 12); do
+#	busybox mknod -m 600 /dev/input/event${i} c 13 $(busybox expr 64 + ${i})
+#done
+busybox mknod -m 666 /dev/null c 1 3
+
+# trigger vibration
+busybox echo 100 > ${BOOTREC_VIBRATOR}
+
+# trigger blue(-ish) LED
+busybox echo 51 > ${BOOTREC_LED_RED}
+busybox echo 181 > ${BOOTREC_LED_GREEN}
+busybox echo 229 > ${BOOTREC_LED_BLUE}
+
+# android ramdisk
+load_image=/stage1/ramdisk.cpio
+
+# keycheck
+busybox timeout -t 3 keycheck
+
+# boot decision
+if [ $? -eq 42 ] || busybox grep -q warmboot=0x77665502 /proc/cmdline ; then
+	busybox echo 'RECOVERY BOOT' >>boot.txt
+	# white(-ish) led for recoveryboot
+	busybox echo 131 > ${BOOTREC_LED_RED}
+	busybox echo 229 > ${BOOTREC_LED_GREEN}
+	busybox echo 51 > ${BOOTREC_LED_BLUE}
+	# recovery ramdisk
+	busybox mknod -m 600 ${BOOTREC_FOTA_NODE}
+	busybox mount -o remount,rw /
+	busybox ln -sf /stage1/busybox /stage1/sh
+	extract_elf_ramdisk -i ${BOOTREC_FOTA} -o /stage1/ramdisk-recovery.cpio -t / -c
+	busybox rm /stage1/sh
+	load_image=/stage1/ramdisk-recovery.cpio
+else
+	busybox echo 'ANDROID BOOT' >>boot.txt
+	# poweroff LED
+	busybox echo 0 > ${BOOTREC_LED_RED}
+	busybox echo 0 > ${BOOTREC_LED_GREEN}
+	busybox echo 0 > ${BOOTREC_LED_BLUE}
+fi
+
+# unpack the ramdisk image
+busybox cpio -ui < ${load_image}
+
+busybox umount /proc
+busybox umount /sys
+
+busybox rm -fr /dev/*
+busybox date >>boot.txt
+export PATH="${_PATH}"
+exec /init
