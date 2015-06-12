@@ -22,8 +22,10 @@
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
 
-static int autosuspend_delay_ms = 1200;
-module_param(autosuspend_delay_ms, int, S_IRUGO);
+// humberos: make torch usable on screen off
+// static int autosuspend_delay_ms = 1200;
+// module_param(autosuspend_delay_ms, int, S_IRUGO);
+
 /*
  ******************************************************************************
  * - Value declaration
@@ -1590,7 +1592,10 @@ static int __devinit lm3560_probe(struct i2c_client *client,
 				__func__);
 		goto err_chip_init;
 	}
-	pm_runtime_set_autosuspend_delay(&client->dev, autosuspend_delay_ms);
+
+	// humberos: make torch usable on screen off
+	//pm_runtime_set_autosuspend_delay(&client->dev, autosuspend_delay_ms);
+
 	pm_runtime_use_autosuspend(&client->dev);
 	dev_info(&data->client->dev, "%s: loaded\n", __func__);
 
@@ -1716,7 +1721,8 @@ static int lm3560_resume_sleep(struct device *dev)
 #endif
 
 static const struct dev_pm_ops lm3560_pm = {
-	 SET_SYSTEM_SLEEP_PM_OPS(lm3560_suspend_sleep, lm3560_resume_sleep)
+	// humberos: make torch usable on screen off
+	// SET_SYSTEM_SLEEP_PM_OPS(lm3560_suspend_sleep, lm3560_resume_sleep)
 	 SET_RUNTIME_PM_OPS(lm3560_suspend, lm3560_resume, lm3560_idle)
 };
 
