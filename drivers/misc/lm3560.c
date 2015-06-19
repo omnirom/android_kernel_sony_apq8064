@@ -22,10 +22,6 @@
 #include <linux/pm_runtime.h>
 #include <linux/slab.h>
 
-// humberos: make torch usable on screen off
-// static int autosuspend_delay_ms = 1200;
-// module_param(autosuspend_delay_ms, int, S_IRUGO);
-
 /*
  ******************************************************************************
  * - Value declaration
@@ -1593,9 +1589,6 @@ static int __devinit lm3560_probe(struct i2c_client *client,
 		goto err_chip_init;
 	}
 
-	// humberos: make torch usable on screen off
-	//pm_runtime_set_autosuspend_delay(&client->dev, autosuspend_delay_ms);
-
 	pm_runtime_use_autosuspend(&client->dev);
 	dev_info(&data->client->dev, "%s: loaded\n", __func__);
 
@@ -1686,43 +1679,7 @@ static int lm3560_idle(struct device *dev)
 #define lm3560_idle NULL
 #endif
 
-#ifdef CONFIG_PM_SLEEP
-static int lm3560_suspend_sleep(struct device *dev)
-{
-	int rc;
-	struct lm3560_drv_data *data = dev_get_drvdata(dev);
-
-	if (pm_runtime_status_suspended(dev)) {
-		dev_dbg(dev, "%s: runtime-suspended.\n", __func__);
-		return 0;
-	}
-	rc = lm3560_suspend(dev);
-	if (!rc) {
-		pm_runtime_disable(dev);
-		pm_runtime_set_suspended(dev);
-		pm_runtime_enable(dev);
-	}
-	data->on_duty = DUTY_ON_NOTHING;
-	dev_dbg(dev, "%s: suspended (%d)\n", __func__, rc);
-	return rc;
-}
-
-static int lm3560_resume_sleep(struct device *dev)
-{
-	int rc = 0;
-	if (!pm_runtime_status_suspended(dev))
-		rc = lm3560_resume(dev);
-	dev_dbg(dev, "%s: resumed (%d)\n", __func__, rc);
-	return rc;
-}
-#else
-#define lm3560_suspend_sleep NULL
-#define lm3560_resume_sleep NULL
-#endif
-
 static const struct dev_pm_ops lm3560_pm = {
-	// humberos: make torch usable on screen off
-	// SET_SYSTEM_SLEEP_PM_OPS(lm3560_suspend_sleep, lm3560_resume_sleep)
 	 SET_RUNTIME_PM_OPS(lm3560_suspend, lm3560_resume, lm3560_idle)
 };
 
