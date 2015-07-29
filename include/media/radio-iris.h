@@ -1,7 +1,6 @@
 /*
  *
- * Copyright (c) 2011-2012 The Linux Foundation. All rights reserved.
- * Copyright (c) 2013 Sony Mobile Communications AB.
+ * Copyright (c) 2011-2013 The Linux Foundation. All rights reserved.
  *
  * This file is based on include/net/bluetooth/hci_core.h
  *
@@ -28,55 +27,55 @@
 #ifndef __RADIO_HCI_CORE_H
 #define __RADIO_HCI_CORE_H
 
-#ifdef __KERNEL__
 #include <linux/skbuff.h>
 #include <linux/interrupt.h>
 #include <linux/mutex.h>
 #include <linux/atomic.h>
-static const unsigned char MIN_TX_TONE_VAL = 0x00;
-static const unsigned char MAX_TX_TONE_VAL = 0x07;
-static const unsigned char MIN_HARD_MUTE_VAL = 0x00;
-static const unsigned char MAX_HARD_MUTE_VAL = 0x03;
-static const unsigned char MIN_SRCH_MODE = 0x00;
-static const unsigned char MAX_SRCH_MODE = 0x09;
-static const unsigned char MIN_SCAN_DWELL = 0x00;
-static const unsigned char MAX_SCAN_DWELL = 0x0F;
-static const unsigned char MIN_SIG_TH = 0x00;
-static const unsigned char MAX_SIG_TH = 0x03;
-static const unsigned char MIN_PTY = 0X00;
-static const unsigned char MAX_PTY = 0x1F;
-static const unsigned short MIN_PI = 0x0000;
-static const unsigned short MAX_PI = 0xFFFF;
-static const unsigned char MIN_SRCH_STATIONS_CNT = 0x00;
-static const unsigned char MAX_SRCH_STATIONS_CNT = 0x14;
-static const unsigned char MIN_CHAN_SPACING = 0x00;
-static const unsigned char MAX_CHAN_SPACING = 0x02;
-static const unsigned char MIN_EMPHASIS = 0x00;
-static const unsigned char MAX_EMPHASIS = 0x01;
-static const unsigned char MIN_RDS_STD = 0x00;
-static const unsigned char MAX_RDS_STD = 0x02;
-static const unsigned char MIN_ANTENNA_VAL = 0x00;
-static const unsigned char MAX_ANTENNA_VAL = 0x01;
-static const unsigned char MIN_TX_PS_REPEAT_CNT = 0x01;
-static const unsigned char MAX_TX_PS_REPEAT_CNT = 0x0F;
-static const unsigned char MIN_SOFT_MUTE = 0x00;
-static const unsigned char MAX_SOFT_MUTE = 0x01;
-static const unsigned char MIN_PEEK_ACCESS_LEN = 0x01;
-static const unsigned char MAX_PEEK_ACCESS_LEN = 0xF9;
-static const unsigned char MIN_RESET_CNTR = 0x00;
-static const unsigned char MAX_RESET_CNTR = 0x01;
-static const unsigned char MIN_HLSI = 0x00;
-static const unsigned char MAX_HLSI = 0x02;
-static const unsigned char MIN_NOTCH_FILTER = 0x00;
-static const unsigned char MAX_NOTCH_FILTER = 0x02;
-static const unsigned char MIN_INTF_DET_OUT_LW_TH = 0x00;
-static const unsigned char MAX_INTF_DET_OUT_LW_TH = 0xFF;
-static const unsigned char MIN_INTF_DET_OUT_HG_TH = 0x00;
-static const unsigned char MAX_INTF_DET_OUT_HG_TH = 0xFF;
-static const signed char MIN_SINR_TH = -128;
-static const signed char MAX_SINR_TH = 127;
-static const unsigned char MIN_SINR_SAMPLES = 0x01;
-static const unsigned char MAX_SINR_SAMPLES = 0xFF;
+#include "radio-iris-commands.h"
+#define MIN_TX_TONE_VAL 0x00
+#define MAX_TX_TONE_VAL 0x07
+#define MIN_HARD_MUTE_VAL 0x00
+#define MAX_HARD_MUTE_VAL 0x03
+#define MIN_SRCH_MODE 0x00
+#define MAX_SRCH_MODE 0x09
+#define MIN_SCAN_DWELL 0x00
+#define MAX_SCAN_DWELL 0x0F
+#define MIN_SIG_TH 0x00
+#define MAX_SIG_TH 0x03
+#define MIN_PTY 0X00
+#define MAX_PTY 0x1F
+#define MIN_PI 0x0000
+#define MAX_PI 0xFFFF
+#define MIN_SRCH_STATIONS_CNT 0x00
+#define MAX_SRCH_STATIONS_CNT 0x14
+#define MIN_CHAN_SPACING 0x00
+#define MAX_CHAN_SPACING 0x02
+#define MIN_EMPHASIS 0x00
+#define MAX_EMPHASIS 0x01
+#define MIN_RDS_STD 0x00
+#define MAX_RDS_STD 0x02
+#define MIN_ANTENNA_VAL 0x00
+#define MAX_ANTENNA_VAL 0x01
+#define MIN_TX_PS_REPEAT_CNT 0x01
+#define MAX_TX_PS_REPEAT_CNT 0x0F
+#define MIN_SOFT_MUTE 0x00
+#define MAX_SOFT_MUTE 0x01
+#define MIN_PEEK_ACCESS_LEN 0x01
+#define MAX_PEEK_ACCESS_LEN 0xF9
+#define MIN_RESET_CNTR 0x00
+#define MAX_RESET_CNTR 0x01
+#define MIN_HLSI 0x00
+#define MAX_HLSI 0x02
+#define MIN_NOTCH_FILTER 0x00
+#define MAX_NOTCH_FILTER 0x02
+#define MIN_INTF_DET_OUT_LW_TH 0x00
+#define MAX_INTF_DET_OUT_LW_TH 0xFF
+#define MIN_INTF_DET_OUT_HG_TH 0x00
+#define MAX_INTF_DET_OUT_HG_TH 0xFF
+#define MIN_SINR_TH -128
+#define MAX_SINR_TH 127
+#define MIN_SINR_SAMPLES 0x01
+#define MAX_SINR_SAMPLES 0xFF
 
 /* ---- HCI Packet structures ---- */
 #define RADIO_HCI_COMMAND_HDR_SIZE sizeof(struct radio_hci_command_hdr)
@@ -650,8 +649,6 @@ struct hci_fm_spur_data {
 #define hci_req_lock(d)		mutex_lock(&d->req_lock)
 #define hci_req_unlock(d)	mutex_unlock(&d->req_lock)
 
-#endif /* __KERNEL__ */
-
 /* FM RDS */
 #define RDS_PTYPE 2
 #define RDS_PID_LOWER 1
@@ -680,105 +677,6 @@ enum radio_state_t {
 	FM_MAX_NO_STATES,
 };
 
-enum v4l2_cid_private_iris_t {
-	V4L2_CID_PRIVATE_IRIS_SRCHMODE = (0x08000000 + 1),
-	V4L2_CID_PRIVATE_IRIS_SCANDWELL,
-	V4L2_CID_PRIVATE_IRIS_SRCHON,
-	V4L2_CID_PRIVATE_IRIS_STATE,
-	V4L2_CID_PRIVATE_IRIS_TRANSMIT_MODE,
-	V4L2_CID_PRIVATE_IRIS_RDSGROUP_MASK,
-	V4L2_CID_PRIVATE_IRIS_REGION,
-	V4L2_CID_PRIVATE_IRIS_SIGNAL_TH,
-	V4L2_CID_PRIVATE_IRIS_SRCH_PTY,
-	V4L2_CID_PRIVATE_IRIS_SRCH_PI,
-	V4L2_CID_PRIVATE_IRIS_SRCH_CNT,
-	V4L2_CID_PRIVATE_IRIS_EMPHASIS,
-	V4L2_CID_PRIVATE_IRIS_RDS_STD,
-	V4L2_CID_PRIVATE_IRIS_SPACING,
-	V4L2_CID_PRIVATE_IRIS_RDSON,
-	V4L2_CID_PRIVATE_IRIS_RDSGROUP_PROC,
-	V4L2_CID_PRIVATE_IRIS_LP_MODE,
-	V4L2_CID_PRIVATE_IRIS_ANTENNA,
-	V4L2_CID_PRIVATE_IRIS_RDSD_BUF,
-	V4L2_CID_PRIVATE_IRIS_PSALL,  /*0x8000014*/
-
-	/*v4l2 Tx controls*/
-	V4L2_CID_PRIVATE_IRIS_TX_SETPSREPEATCOUNT,
-	V4L2_CID_PRIVATE_IRIS_STOP_RDS_TX_PS_NAME,
-	V4L2_CID_PRIVATE_IRIS_STOP_RDS_TX_RT,
-	V4L2_CID_PRIVATE_IRIS_IOVERC,
-	V4L2_CID_PRIVATE_IRIS_INTDET,
-	V4L2_CID_PRIVATE_IRIS_MPX_DCC,
-	V4L2_CID_PRIVATE_IRIS_AF_JUMP,
-	V4L2_CID_PRIVATE_IRIS_RSSI_DELTA,
-	V4L2_CID_PRIVATE_IRIS_HLSI, /*0x800001d*/
-
-	/*Diagnostic commands*/
-	V4L2_CID_PRIVATE_IRIS_SOFT_MUTE,
-	V4L2_CID_PRIVATE_IRIS_RIVA_ACCS_ADDR,
-	V4L2_CID_PRIVATE_IRIS_RIVA_ACCS_LEN,
-	V4L2_CID_PRIVATE_IRIS_RIVA_PEEK,
-	V4L2_CID_PRIVATE_IRIS_RIVA_POKE,
-	V4L2_CID_PRIVATE_IRIS_SSBI_ACCS_ADDR,
-	V4L2_CID_PRIVATE_IRIS_SSBI_PEEK,
-	V4L2_CID_PRIVATE_IRIS_SSBI_POKE,
-	V4L2_CID_PRIVATE_IRIS_TX_TONE,
-	V4L2_CID_PRIVATE_IRIS_RDS_GRP_COUNTERS,
-	V4L2_CID_PRIVATE_IRIS_SET_NOTCH_FILTER, /* 0x8000028 */
-	V4L2_CID_PRIVATE_IRIS_SET_AUDIO_PATH, /* TAVARUA specific command */
-	V4L2_CID_PRIVATE_IRIS_DO_CALIBRATION,
-	V4L2_CID_PRIVATE_IRIS_SRCH_ALGORITHM, /* TAVARUA specific command */
-	V4L2_CID_PRIVATE_IRIS_GET_SINR,
-	V4L2_CID_PRIVATE_INTF_LOW_THRESHOLD,
-	V4L2_CID_PRIVATE_INTF_HIGH_THRESHOLD,
-	V4L2_CID_PRIVATE_SINR_THRESHOLD,
-	V4L2_CID_PRIVATE_SINR_SAMPLES,
-	V4L2_CID_PRIVATE_SPUR_FREQ,
-	V4L2_CID_PRIVATE_SPUR_FREQ_RMSSI,
-	V4L2_CID_PRIVATE_SPUR_SELECTION,
-	V4L2_CID_PRIVATE_UPDATE_SPUR_TABLE,
-	V4L2_CID_PRIVATE_VALID_CHANNEL,
-	V4L2_CID_PRIVATE_AF_RMSSI_TH,
-	V4L2_CID_PRIVATE_AF_RMSSI_SAMPLES,
-	V4L2_CID_PRIVATE_GOOD_CH_RMSSI_TH,
-	V4L2_CID_PRIVATE_SRCHALGOTYPE,
-	V4L2_CID_PRIVATE_CF0TH12,
-	V4L2_CID_PRIVATE_SINRFIRSTSTAGE,
-	V4L2_CID_PRIVATE_RMSSIFIRSTSTAGE,
-	V4L2_CID_PRIVATE_RXREPEATCOUNT,
-
-
-	/*using private CIDs under userclass*/
-	V4L2_CID_PRIVATE_IRIS_READ_DEFAULT = 0x00980928,
-	V4L2_CID_PRIVATE_IRIS_WRITE_DEFAULT,
-	V4L2_CID_PRIVATE_IRIS_SET_CALIBRATION,
-};
-
-
-enum iris_evt_t {
-	IRIS_EVT_RADIO_READY,
-	IRIS_EVT_TUNE_SUCC,
-	IRIS_EVT_SEEK_COMPLETE,
-	IRIS_EVT_SCAN_NEXT,
-	IRIS_EVT_NEW_RAW_RDS,
-	IRIS_EVT_NEW_RT_RDS,
-	IRIS_EVT_NEW_PS_RDS,
-	IRIS_EVT_ERROR,
-	IRIS_EVT_BELOW_TH,
-	IRIS_EVT_ABOVE_TH,
-	IRIS_EVT_STEREO,
-	IRIS_EVT_MONO,
-	IRIS_EVT_RDS_AVAIL,
-	IRIS_EVT_RDS_NOT_AVAIL,
-	IRIS_EVT_NEW_SRCH_LIST,
-	IRIS_EVT_NEW_AF_LIST,
-	IRIS_EVT_TXRDSDAT,
-	IRIS_EVT_TXRDSDONE,
-	IRIS_EVT_RADIO_DISABLED,
-	IRIS_EVT_NEW_ODA,
-	IRIS_EVT_NEW_RT_PLUS,
-	IRIS_EVT_NEW_ERT,
-};
 enum emphasis_type {
 	FM_RX_EMP75 = 0x0,
 	FM_RX_EMP50 = 0x1
@@ -968,15 +866,12 @@ struct hci_cc_do_calibration_rsp {
 #define AUDIO_CTRL_INTR (1 << 2)
 #define AF_JUMP_ENABLE  (1 << 4)
 
-#ifdef __KERNEL__
 int hci_def_data_read(struct hci_fm_def_data_rd_req *arg,
 	struct radio_hci_dev *hdev);
 int hci_def_data_write(struct hci_fm_def_data_wr_req *arg,
 	struct radio_hci_dev *hdev);
 int hci_fm_do_calibration(__u8 *arg, struct radio_hci_dev *hdev);
 int hci_fm_do_calibration(__u8 *arg, struct radio_hci_dev *hdev);
-int hci_fm_smd_register(void);
-void hci_fm_smd_deregister(void);
 
 static inline int is_valid_tone(int tone)
 {
@@ -1183,5 +1078,4 @@ static inline int is_valid_fm_state(int state)
 	else
 		return 0;
 }
-#endif /* __KERNEL__ */
 #endif /* __RADIO_HCI_CORE_H */

@@ -49,10 +49,17 @@ static unsigned char c_byt_pair_index;
 static char utf_8_flag;
 static char rt_ert_flag;
 static char formatting_dir;
+static unsigned char sig_blend = CTRL_ON;
 static DEFINE_MUTEX(iris_fm);
+#ifndef MODULE
+static int transport_ready = -1;
+#endif
 
 module_param(rds_buf, uint, 0);
 MODULE_PARM_DESC(rds_buf, "RDS buffer entries: *100*");
+
+module_param(sig_blend, byte, S_IWUSR | S_IRUGO);
+MODULE_PARM_DESC(sig_blend, "signal blending switch: 0:OFF 1:ON");
 
 static void radio_hci_cmd_task(unsigned long arg);
 static void radio_hci_rx_task(unsigned long arg);
@@ -1891,7 +1898,7 @@ static void hci_cc_fm_enable_rsp(struct radio_hci_dev *hdev,
 	if (radio->mode == FM_RECV_TURNING_ON) {
 		radio->mode = FM_RECV;
 		iris_q_event(radio, IRIS_EVT_RADIO_READY);
-	} else if(radio->mode == FM_TRANS_TURNING_ON) {
+	} else if (radio->mode == FM_TRANS_TURNING_ON) {
 		radio->mode = FM_TRANS;
 		iris_q_event(radio, IRIS_EVT_RADIO_READY);
 	}
@@ -1941,6 +1948,7 @@ static void hci_cc_sig_threshold_rsp(struct radio_hci_dev *hdev,
 	if (!rsp->status)
 		memcpy(&radio->sig_th, rsp,
 			sizeof(struct hci_fm_sig_threshold_rsp));
+
 	radio_hci_req_complete(hdev, rsp->status);
 }
 
@@ -4989,7 +4997,7 @@ static int initialise_recv(struct iris_device *radio)
 	}
 
 	radio->stereo_mode.stereo_mode = CTRL_OFF;
-	radio->stereo_mode.sig_blend = CTRL_ON;
+	radio->stereo_mode.sig_blend = sig_blend;
 	radio->stereo_mode.intf_blend = CTRL_ON;
 	radio->stereo_mode.most_switch = CTRL_ON;
 	retval = hci_set_fm_stereo_mode(&radio->stereo_mode,
@@ -5071,26 +5079,23 @@ static const struct v4l2_ioctl_ops iris_ioctl_ops = {
 	.vidioc_g_ext_ctrls           = iris_vidioc_g_ext_ctrls,
 };
 
-static int is_initialized = 0;
-static int video_open(struct file *file) {
-	int retval;
-	if(!is_initialized) {
-		retval = hci_fm_smd_register();
-		if (retval) {
-			FMDERR(": hci_fm_smd_register failed\n");
-			return retval;
-		}
-		is_initialized = 1;
+#ifndef MODULE
+extern int radio_hci_smd_init(void);
+static int iris_fops_open(struct file *f) {
+	if (transport_ready < 0) {
+		transport_ready = radio_hci_smd_init();
 	}
-
-	return 0;
+	return transport_ready;
 }
+#endif
 
 static const struct v4l2_file_operations iris_fops = {
 	.owner = THIS_MODULE,
 	.unlocked_ioctl = video_ioctl2,
 	.release        = iris_fops_release,
-	.open = video_open,
+#ifndef MODULE
+	.open           = iris_fops_open,
+#endif
 };
 
 static struct video_device iris_viddev_template = {
@@ -5210,9 +5215,6 @@ static int __devexit iris_remove(struct platform_device *pdev)
 		FMDERR(":radio is null");
 		return -EINVAL;
 	}
-
-	hci_fm_smd_deregister();
-
 	video_unregister_device(radio->videodev);
 
 	for (i = 0; i < IRIS_BUF_MAX; i++)
@@ -5225,10 +5227,16 @@ static int __devexit iris_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static const struct of_device_id iris_fm_match[] = {
+	{.compatible = "qcom,iris_fm"},
+	{}
+};
+
 static struct platform_driver iris_driver = {
 	.driver = {
 		.owner  = THIS_MODULE,
 		.name   = "iris_fm",
+		.of_match_table = iris_fm_match,
 	},
 	.remove = __devexit_p(iris_remove),
 };
