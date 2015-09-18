@@ -626,8 +626,12 @@ irqreturn_t inv_read_fifo_mpu3050(int irq, void *dev_id)
 		fifo_count = be16_to_cpup((__be16 *)(&data[0]));
 		if (fifo_count < byte_read)
 			goto end_session;
+
+		/* Fix timestamp issue on CTS Verifier 5.1_r1 */
+		/*
 		if (fifo_count & 1)
 			goto flush_fifo;
+		*/
 		if (fifo_count > FIFO_THRESHOLD)
 			goto flush_fifo;
 		/* Timestamp mismatch. */
